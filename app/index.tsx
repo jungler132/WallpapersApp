@@ -35,7 +35,7 @@ export default function SplashScreen() {
 
     // Переход на следующий экран через 3 секунды
     const timer = setTimeout(() => {
-      router.replace('/home');
+      router.replace('/(tabs)/feed');
     }, 3000);
 
     return () => clearTimeout(timer);

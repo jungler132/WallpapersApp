@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function HomeScreen() {
+export default function SettingsScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Welcome to Anime Wallpapers</Text>
+      <Text style={styles.text}>Settings Screen</Text>
     </View>
   );
 }
@@ -12,11 +12,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   text: {
+    color: '#fff',
     fontSize: 24,
     fontWeight: 'bold',
   },
