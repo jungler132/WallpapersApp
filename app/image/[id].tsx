@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, TouchableOpacity, ActivityIndicator, Text, ScrollView, Linking, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,6 +10,8 @@ import { ImageData } from '../../utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ImageView from 'react-native-image-viewing';
 import Toast from 'react-native-toast-message';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import FavoriteButton from '../../components/FavoriteButton';
 
 const { width, height } = Dimensions.get('window');
 
@@ -17,6 +19,7 @@ export default function ImageDetailsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [isImageViewVisible, setIsImageViewVisible] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
   const params = useLocalSearchParams<{
     id: string;
     file_url: string;
@@ -52,6 +55,40 @@ export default function ImageDetailsScreen() {
   const imageUrl = image.file_url?.startsWith('http') 
     ? image.file_url 
     : `https://${image.file_url}`;
+
+  useEffect(() => {
+    checkFavoriteStatus();
+  }, [image._id]);
+
+  const checkFavoriteStatus = async () => {
+    try {
+      const favorites = await AsyncStorage.getItem('favorites');
+      const favoritesArray = favorites ? JSON.parse(favorites) : [];
+      setIsFavorite(favoritesArray.includes(image._id));
+    } catch (error) {
+      console.error('Error checking favorite status:', error);
+    }
+  };
+
+  const handleFavoriteToggle = async (newIsFavorite: boolean) => {
+    try {
+      const favorites = await AsyncStorage.getItem('favorites');
+      let favoritesArray = favorites ? JSON.parse(favorites) : [];
+      
+      if (newIsFavorite) {
+        if (!favoritesArray.includes(image._id)) {
+          favoritesArray.push(image._id);
+        }
+      } else {
+        favoritesArray = favoritesArray.filter((id: number) => id !== image._id);
+      }
+      
+      await AsyncStorage.setItem('favorites', JSON.stringify(favoritesArray));
+      setIsFavorite(newIsFavorite);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -175,6 +212,11 @@ export default function ImageDetailsScreen() {
           <Ionicons name="close" size={24} color="#FFF" />
         </TouchableOpacity>
         <View style={styles.actions}>
+          <FavoriteButton 
+            imageId={image._id}
+            isFavorite={isFavorite}
+            onToggle={handleFavoriteToggle}
+          />
           <TouchableOpacity 
             style={styles.actionButton} 
             onPress={handleSave}
@@ -298,7 +340,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 8,
   },
   actionButton: {
     padding: 8,

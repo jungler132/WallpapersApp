@@ -3,6 +3,7 @@ import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { getRandomImages } from '../utils/api';
 import { AnimeImage } from '../components/AnimeImage';
 import type { ImageData } from '../utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function FeedScreen() {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -13,6 +14,20 @@ export default function FeedScreen() {
       const newImages = await getRandomImages(10);
       console.log('Полный массив изображений:', JSON.stringify(newImages, null, 2));
       setImages(newImages);
+
+      // Сохраняем изображения в кэш
+      const cachedImages = await AsyncStorage.getItem('cached_images');
+      const existingImages = cachedImages ? JSON.parse(cachedImages) : [];
+      
+      // Добавляем только новые изображения
+      const updatedImages = [...existingImages];
+      newImages.forEach(newImage => {
+        if (!existingImages.some((img: ImageData) => img._id === newImage._id)) {
+          updatedImages.push(newImage);
+        }
+      });
+
+      await AsyncStorage.setItem('cached_images', JSON.stringify(updatedImages));
     } catch (error) {
       console.error('Error loading images:', error);
     }
@@ -53,9 +68,9 @@ export default function FeedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#1a1a1a',
   },
   list: {
-    padding: 16,
+    padding: 8,
   },
 }); 

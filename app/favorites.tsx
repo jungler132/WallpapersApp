@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ImageData } from '../../utils/api';
+import { ImageData } from '../utils/api';
 
 export default function FavoritesScreen() {
   const [favorites, setFavorites] = useState<number[]>([]);
@@ -26,17 +26,39 @@ export default function FavoritesScreen() {
       setFavorites(favoritesArray);
       console.log('Parsed favorites array:', favoritesArray);
 
-      // Загружаем все изображения из кэша
-      const cachedImages = await AsyncStorage.getItem('cached_images');
-      const allImages = cachedImages ? JSON.parse(cachedImages) : [];
-      
-      // Фильтруем только избранные изображения
-      const favoriteImages = allImages.filter((img: ImageData) => 
-        favoritesArray.includes(img._id)
-      );
-      
-      console.log('Favorite images:', favoriteImages);
-      setImages(favoriteImages);
+      if (favoritesArray.length > 0) {
+        const imagesData = await Promise.all(
+          favoritesArray.map(async (id: number) => {
+            try {
+              const response = await fetch(`https://danbooru.donmai.us/posts/${id}.json`);
+              const data = await response.json();
+              console.log('Loaded image data for ID:', id, data);
+              
+              return {
+                _id: data.id,
+                file_url: data.file_url,
+                file_size: data.file_size,
+                tags: data.tag_string.split(' '),
+                md5: data.md5,
+                width: data.image_width,
+                height: data.image_height,
+                source: data.source,
+                author: data.tag_string_artist,
+                has_children: data.has_children
+              } as ImageData;
+            } catch (error) {
+              console.error('Error loading image data for ID:', id, error);
+              return null;
+            }
+          })
+        );
+
+        const validImages = imagesData.filter((img): img is ImageData => img !== null);
+        console.log('Valid images loaded:', validImages);
+        setImages(validImages);
+      } else {
+        setImages([]);
+      }
     } catch (error) {
       console.error('Error loading favorites:', error);
     } finally {
@@ -87,7 +109,7 @@ export default function FavoritesScreen() {
             onPress={() => handleImagePress(item)}
           >
             <Image
-              source={{ uri: item.file_url.startsWith('http') ? item.file_url : `https://${item.file_url}` }}
+              source={{ uri: item.file_url }}
               style={styles.image}
               resizeMode="cover"
             />

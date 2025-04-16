@@ -3,11 +3,16 @@ import axios from 'axios';
 const API_URL = 'https://api.waifu.im/search';
 
 export interface ImageData {
-  _id: string;
+  _id: number;
   file_url: string;
-  preview_url: string;
+  file_size: number;
   tags: string[];
-  created_at: string;
+  md5: string;
+  width: number;
+  height: number;
+  source: string;
+  author: string;
+  has_children: boolean;
 }
 
 interface ApiResponse {
