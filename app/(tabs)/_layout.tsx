@@ -15,9 +15,6 @@ export default function TabLayout() {
           backgroundColor: '#000',
           borderTopWidth: 0,
           elevation: 0,
-          height: 60 + insets.bottom,
-          paddingBottom: 8 + insets.bottom,
-          paddingTop: 8,
         },
         headerStyle: {
           backgroundColor: '#000',
@@ -33,6 +30,15 @@ export default function TabLayout() {
           title: 'Feed',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="grid-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Search',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="search-outline" size={size} color={color} />
           ),
         }}
       />

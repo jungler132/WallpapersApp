@@ -1,6 +1,7 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { Toast } from 'react-native-toast-message/lib/src/Toast';
 
 export default function RootLayout() {
   return (
@@ -10,6 +11,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
       </Stack>
       <StatusBar style="light" />
+      <Toast />
     </>
   );
 }
