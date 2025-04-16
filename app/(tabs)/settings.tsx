@@ -22,7 +22,7 @@ export default function SettingsScreen() {
     reloadSettings
   } = useSettings();
 
-  const handleColumnChange = async (columns: 1 | 2 | 3) => {
+  const handleColumnChange = async (columns: 1 | 2) => {
     console.log('Changing columns to:', columns);
     if (columns === settings.gridColumns) {
       console.log('Same column count, skipping update');
@@ -31,7 +31,7 @@ export default function SettingsScreen() {
     
     await updateSettings({ gridColumns: columns });
     console.log('Settings updated, reloading settings...');
-    await reloadSettings(); // Принудительно перезагружаем настройки
+    await reloadSettings();
   };
 
   const handleClearCache = () => {
@@ -68,14 +68,14 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Отображение сетки</Text>
         <View style={styles.columnsContainer}>
-          {[1, 2, 3].map((columns) => (
+          {[1, 2].map((columns) => (
             <TouchableOpacity
               key={columns}
               style={[
                 styles.columnButton,
                 settings.gridColumns === columns && styles.columnButtonActive
               ]}
-              onPress={() => handleColumnChange(columns as 1 | 2 | 3)}
+              onPress={() => handleColumnChange(columns as 1 | 2)}
             >
               <Text
                 style={[

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 
 export type Settings = {
-  gridColumns: 1 | 2 | 3;
+  gridColumns: 1 | 2;
   maxCacheSize: number; // в байтах
 };
 
