@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, Dimensions } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl, Dimensions, ActivityIndicator } from 'react-native';
 import { getRandomImages } from '../utils/api';
 import { AnimeImage } from '../components/AnimeImage';
 import type { ImageData } from '../utils/api';
@@ -13,6 +13,7 @@ export default function FeedScreen() {
   const [images, setImages] = useState<ImageData[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isChangingGrid, setIsChangingGrid] = useState(false);
   const { settings, reloadSettings } = useSettings();
 
   // Вычисляем количество изображений для загрузки на основе количества колонок
@@ -68,7 +69,6 @@ export default function FeedScreen() {
 
   // Загружаем изображения при первом монтировании
   useEffect(() => {
-    // Проверяем, есть ли уже загруженные изображения
     if (images.length === 0) {
       loadImages(true);
     }
@@ -78,25 +78,28 @@ export default function FeedScreen() {
   useFocusEffect(
     React.useCallback(() => {
       const updateUI = async () => {
+        setIsChangingGrid(true);
         console.log('Feed screen focused, reloading settings...');
-        await reloadSettings(); // Перезагружаем настройки
+        await reloadSettings();
         console.log('Current grid columns:', settings.gridColumns);
-        
-        // Только форсируем перерисовку существующих изображений
-        setImages(prevImages => {
-          // Если изображений нет, загружаем новые
-          if (prevImages.length === 0) {
-            loadImages(true);
-            return prevImages;
-          }
-          // Иначе просто возвращаем копию массива для перерисовки
-          return [...prevImages];
-        });
+        setImages(prevImages => [...prevImages]);
+        // Небольшая задержка перед скрытием лоадера для плавности
+        setTimeout(() => {
+          setIsChangingGrid(false);
+        }, 300);
       };
       
       updateUI();
     }, [])
   );
+
+  if (isChangingGrid) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF3366" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -130,6 +133,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1a1a1a',
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   list: {
     padding: 4,
