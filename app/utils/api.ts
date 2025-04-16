@@ -2,6 +2,7 @@ const API_BASE_URL = 'https://pic.re';
 
 export interface ImageData {
   file_url: string;
+  file_size: number;
   md5: string;
   tags: string[];
   width: number;
@@ -10,6 +11,8 @@ export interface ImageData {
   author: string;
   has_children: boolean;
   _id: number;
+  preview_url?: string;
+  created_at?: string;
 }
 
 export const getRandomImage = async (): Promise<ImageData> => {

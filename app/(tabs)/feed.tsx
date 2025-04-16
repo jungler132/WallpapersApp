@@ -11,7 +11,7 @@ export default function FeedScreen() {
   const loadImages = async () => {
     try {
       const newImages = await getRandomImages(10);
-      console.log('Loaded images:', newImages);
+      console.log('Полный массив изображений:', JSON.stringify(newImages, null, 2));
       setImages(newImages);
     } catch (error) {
       console.error('Error loading images:', error);

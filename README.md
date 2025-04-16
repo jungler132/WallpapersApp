@@ -422,3 +422,88 @@ npm run build
 3. Добавление поиска по тегам
 4. Кэширование изображений
 5. Добавление анимаций переходов 
+
+## Передача данных между экранами
+
+### Передача данных из фида в экран деталей
+
+При переходе из фида в экран деталей изображения необходимо передавать следующие поля:
+
+```typescript
+// Объект изображения (ImageData)
+{
+  _id: number;           // ID изображения
+  file_url: string;      // URL изображения
+  file_size: number;     // Размер файла в байтах
+  md5: string;          // MD5 хеш файла
+  tags: string[];       // Массив тегов
+  width: number;        // Ширина изображения
+  height: number;       // Высота изображения
+  source: string;       // Источник изображения
+  author: string;       // Автор изображения
+  has_children: boolean;// Флаг наличия дочерних изображений
+}
+```
+
+#### Пример передачи данных:
+
+```typescript
+// В компоненте AnimeImage
+const handlePress = () => {
+  router.push({
+    pathname: `/image/${image._id}`,
+    params: {
+      ...image,
+      tags: JSON.stringify(image.tags),        // Преобразуем массив тегов в строку
+      _id: image._id.toString(),              // Преобразуем ID в строку
+      has_children: image.has_children.toString(), // Преобразуем boolean в строку
+      file_size: image.file_size.toString(),   // Преобразуем размер в строку
+      width: image.width.toString(),          // Преобразуем ширину в строку
+      height: image.height.toString()         // Преобразуем высоту в строку
+    }
+  });
+};
+```
+
+#### Получение данных в экране деталей:
+
+```typescript
+// В экране деталей ([id].tsx)
+const params = useLocalSearchParams<{
+  id: string;
+  file_url: string;
+  file_size: string;
+  tags: string;
+  md5: string;
+  width: string;
+  height: string;
+  source: string;
+  author: string;
+  has_children: string;
+  _id: string;
+}>();
+
+// Создание объекта изображения
+const image: ImageData = {
+  _id: parseInt(params._id),
+  file_url: params.file_url,
+  file_size: parseInt(params.file_size),
+  tags: JSON.parse(params.tags || '[]'),
+  md5: params.md5,
+  width: parseInt(params.width),
+  height: parseInt(params.height),
+  source: params.source,
+  author: params.author,
+  has_children: params.has_children === 'true'
+};
+```
+
+#### Важные замечания:
+
+1. Все числовые значения при передаче должны быть преобразованы в строки
+2. Массивы (например, теги) должны быть преобразованы в JSON-строку
+3. Булевы значения должны быть преобразованы в строки 'true' или 'false'
+4. При получении данных необходимо выполнить обратное преобразование:
+   - Строки в числа: `parseInt()`
+   - JSON-строки в массивы: `JSON.parse()`
+   - Строки в булевы значения: `=== 'true'` 
