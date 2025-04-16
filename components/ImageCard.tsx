@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { ImageData } from '../utils/api';
+import { useImageLoader } from '../hooks/useImageLoader';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.9;
@@ -14,14 +15,21 @@ interface ImageCardProps {
 
 export default function ImageCard({ image }: ImageCardProps) {
   const router = useRouter();
+  const { isLoading, thumbnailUri, fullUri, error } = useImageLoader(image.file_url);
 
   const handlePress = () => {
     router.push({
       pathname: '/image/[id]',
       params: { 
         id: image._id,
-        file_url: image.file_url.startsWith('http') ? image.file_url : `https://${image.file_url}`,
-        tags: JSON.stringify(image.tags)
+        file_url: fullUri || image.file_url,
+        cached_uri: fullUri || '',
+        tags: JSON.stringify(image.tags),
+        _id: image._id.toString(),
+        has_children: image.has_children.toString(),
+        file_size: image.file_size.toString(),
+        width: image.width.toString(),
+        height: image.height.toString()
       }
     });
   };
@@ -29,15 +37,21 @@ export default function ImageCard({ image }: ImageCardProps) {
   return (
     <TouchableOpacity onPress={handlePress}>
       <View style={styles.container}>
-        <Image
-          source={{ uri: image.file_url.startsWith('http') ? image.file_url : `https://${image.file_url}` }}
-          style={styles.image}
-          contentFit="cover"
-          transition={1000}
-          cachePolicy="memory-disk"
-          placeholder={require('../../assets/placeholder/image-placeholder.png')}
-          recyclingKey={image._id.toString()}
-        />
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FF3366" />
+          </View>
+        ) : (
+          <Image
+            source={{ uri: thumbnailUri || image.file_url }}
+            style={styles.image}
+            contentFit="cover"
+            transition={300}
+            cachePolicy="memory-disk"
+            placeholder={require('../../assets/placeholder/image-placeholder.png')}
+            recyclingKey={image._id.toString()}
+          />
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -56,4 +70,9 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  }
 }); 

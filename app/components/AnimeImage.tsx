@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Image, StyleSheet, Dimensions, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
+import { View, Image, StyleSheet, Dimensions, ActivityIndicator, Text, TouchableOpacity, FlatList } from 'react-native';
 import { ImageData } from '../utils/api';
 import { useRouter } from 'expo-router';
 
@@ -56,6 +56,10 @@ export const AnimeImage: React.FC<AnimeImageProps> = ({ image }) => {
             setLoading(false);
           }}
           resizeMode="cover"
+          cachePolicy="memory-disk"
+          contentFit="cover"
+          transition={300}
+          priority="high"
         />
         {loading && (
           <View style={styles.loadingContainer}>

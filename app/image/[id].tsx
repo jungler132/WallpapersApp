@@ -12,6 +12,7 @@ import ImageView from 'react-native-image-viewing';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FavoriteButton from '../../components/FavoriteButton';
+import { useImageLoader } from '../../hooks/useImageLoader';
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,9 +21,12 @@ export default function ImageDetailsScreen() {
   const insets = useSafeAreaInsets();
   const [isImageViewVisible, setIsImageViewVisible] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
   const params = useLocalSearchParams<{
     id: string;
     file_url: string;
+    cached_uri: string;
     file_size: string;
     tags: string;
     md5: string;
@@ -33,9 +37,6 @@ export default function ImageDetailsScreen() {
     has_children: string;
     _id: string;
   }>();
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
 
   // Создаем объект с данными изображения
   const image: Partial<ImageData> = {
@@ -55,6 +56,8 @@ export default function ImageDetailsScreen() {
   const imageUrl = image.file_url?.startsWith('http') 
     ? image.file_url 
     : `https://${image.file_url}`;
+
+  const { isLoading: imageLoading, fullUri } = useImageLoader(imageUrl);
 
   useEffect(() => {
     checkFavoriteStatus();
@@ -207,6 +210,10 @@ export default function ImageDetailsScreen() {
     return (bytes / 1048576).toFixed(1) + ' MB';
   };
 
+  const handleFullScreenPress = () => {
+    setIsImageViewVisible(true);
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={[styles.header, { marginTop: insets.top }]}>
@@ -242,17 +249,22 @@ export default function ImageDetailsScreen() {
       <ScrollView style={styles.content}>
         <TouchableOpacity 
           style={styles.imageContainer}
-          onPress={() => setIsImageViewVisible(true)}
+          onPress={handleFullScreenPress}
         >
           <Image
-            source={{ uri: imageUrl }}
+            source={{ uri: params.cached_uri || fullUri || params.file_url }}
             style={styles.image}
             contentFit="contain"
-            transition={1000}
+            transition={300}
             cachePolicy="memory-disk"
             placeholder={require('../../assets/placeholder/image-placeholder.png')}
-            recyclingKey={image._id?.toString() || ''}
+            recyclingKey={image._id?.toString()}
           />
+          {imageLoading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="#FF3366" />
+            </View>
+          )}
         </TouchableOpacity>
 
         <View style={styles.details}>
@@ -308,14 +320,8 @@ export default function ImageDetailsScreen() {
         </View>
       </ScrollView>
 
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#FF3366" />
-        </View>
-      )}
-
       <ImageView
-        images={[{ uri: imageUrl }]}
+        images={[{ uri: params.cached_uri || fullUri || params.file_url }]}
         imageIndex={0}
         visible={isImageViewVisible}
         onRequestClose={() => setIsImageViewVisible(false)}
