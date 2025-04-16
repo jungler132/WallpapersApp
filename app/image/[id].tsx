@@ -65,8 +65,8 @@ export default function ImageDetailsScreen() {
         }
       }
 
-      // Создаем уникальное имя файла
-      const fileName = `image_${Date.now()}.jpg`;
+      // Создаем имя файла с ID
+      const fileName = `wp_${image._id}.jpg`;
       const fileUri = `${FileSystem.documentDirectory}${fileName}`;
 
       // Проверяем и создаем директорию, если она не существует
@@ -112,7 +112,10 @@ export default function ImageDetailsScreen() {
   const handleShare = async () => {
     try {
       setIsLoading(true);
-      const fileUri = `${FileSystem.cacheDirectory}temp_image.jpg`;
+      // Создаем имя файла с ID
+      const fileName = `wp_${image._id}.jpg`;
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+      
       const response = await fetch(imageUrl);
       const blob = await response.blob();
       const base64 = await new Promise((resolve) => {
@@ -138,6 +141,21 @@ export default function ImageDetailsScreen() {
   const handleAuthorPress = () => {
     if (image.source) {
       Linking.openURL(image.source);
+    }
+  };
+
+  const handleSourcePress = () => {
+    if (image.source) {
+      Linking.openURL(image.source);
+    }
+  };
+
+  const getDomainFromUrl = (url: string) => {
+    try {
+      const domain = new URL(url).hostname;
+      return domain.startsWith('www.') ? domain.substring(4) : domain;
+    } catch {
+      return url;
     }
   };
 
@@ -210,7 +228,15 @@ export default function ImageDetailsScreen() {
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Source:</Text>
-            <Text style={styles.detailValue} numberOfLines={1}>{image.source}</Text>
+            <TouchableOpacity 
+              style={styles.authorButton}
+              onPress={handleSourcePress}
+            >
+              <Text style={styles.authorText} numberOfLines={1}>
+                {image.source ? getDomainFromUrl(image.source) : ''}
+              </Text>
+              <Ionicons name="open-outline" size={16} color="#FF3366" />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.detailRow}>
@@ -319,6 +345,19 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   authorText: {
+    color: '#FF3366',
+    fontSize: 16,
+    textAlign: 'right',
+  },
+  sourceButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginLeft: 16,
+  },
+  sourceText: {
     color: '#FF3366',
     fontSize: 16,
     textAlign: 'right',
