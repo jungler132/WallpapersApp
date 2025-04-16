@@ -19,6 +19,9 @@ export default function AnimeImage({ image }: AnimeImageProps) {
         style={styles.image}
         contentFit="cover"
         transition={1000}
+        cachePolicy="memory-disk"
+        placeholder={require('../assets/placeholder.png')}
+        recyclingKey={image._id.toString()}
       />
     </View>
   );
@@ -26,15 +29,13 @@ export default function AnimeImage({ image }: AnimeImageProps) {
 
 const styles = StyleSheet.create({
   container: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#1A1A1A',
     marginVertical: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#1a1a1a',
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
   },
 }); 

@@ -34,6 +34,9 @@ export default function ImageCard({ image }: ImageCardProps) {
           style={styles.image}
           contentFit="cover"
           transition={1000}
+          cachePolicy="memory-disk"
+          placeholder={require('../../assets/placeholder/image-placeholder.png')}
+          recyclingKey={image._id.toString()}
         />
       </View>
     </TouchableOpacity>

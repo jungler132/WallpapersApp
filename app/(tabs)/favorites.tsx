@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ImageData } from '../../utils/api';
@@ -81,6 +82,10 @@ export default function FavoritesScreen() {
         data={images}
         numColumns={2}
         keyExtractor={(item) => item._id.toString()}
+        initialNumToRender={4}
+        maxToRenderPerBatch={4}
+        windowSize={5}
+        removeClippedSubviews={true}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.imageContainer}
@@ -89,7 +94,11 @@ export default function FavoritesScreen() {
             <Image
               source={{ uri: item.file_url.startsWith('http') ? item.file_url : `https://${item.file_url}` }}
               style={styles.image}
-              resizeMode="cover"
+              contentFit="cover"
+              transition={1000}
+              cachePolicy="memory-disk"
+              placeholder={require('../../assets/placeholder/image-placeholder.png')}
+              recyclingKey={item._id.toString()}
             />
           </TouchableOpacity>
         )}

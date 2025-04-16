@@ -102,14 +102,19 @@ export default function ImageDetailsScreen() {
         }
       }
 
+      const documentDir = FileSystem.documentDirectory;
+      if (!documentDir) {
+        throw new Error('Document directory not available');
+      }
+
       // Создаем имя файла с ID
       const fileName = `wp_${image._id}.jpg`;
-      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+      const fileUri = `${documentDir}${fileName}`;
 
       // Проверяем и создаем директорию, если она не существует
-      const dirInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory);
+      const dirInfo = await FileSystem.getInfoAsync(documentDir);
       if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory, { intermediates: true });
+        await FileSystem.makeDirectoryAsync(documentDir, { intermediates: true });
       }
 
       // Скачиваем изображение
@@ -213,7 +218,7 @@ export default function ImageDetailsScreen() {
         </TouchableOpacity>
         <View style={styles.actions}>
           <FavoriteButton 
-            imageId={image._id}
+            imageId={image._id || 0}
             isFavorite={isFavorite}
             onToggle={handleFavoriteToggle}
           />
@@ -243,6 +248,10 @@ export default function ImageDetailsScreen() {
             source={{ uri: imageUrl }}
             style={styles.image}
             contentFit="contain"
+            transition={1000}
+            cachePolicy="memory-disk"
+            placeholder={require('../../assets/placeholder/image-placeholder.png')}
+            recyclingKey={image._id?.toString() || ''}
           />
         </TouchableOpacity>
 
