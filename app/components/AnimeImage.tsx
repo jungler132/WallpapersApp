@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Image, StyleSheet, Dimensions, ActivityIndicator, Text, TouchableOpacity, FlatList } from 'react-native';
+import { View, Image, StyleSheet, Dimensions, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { ImageData } from '../utils/api';
 import { useRouter } from 'expo-router';
+import { useSettings } from '../../hooks/useSettings';
 
 const { width } = Dimensions.get('window');
-const IMAGE_SIZE = width - 32; // Отступы по 16 с каждой стороны
 
 interface AnimeImageProps {
   image: ImageData;
@@ -14,6 +14,15 @@ export const AnimeImage: React.FC<AnimeImageProps> = ({ image }) => {
   const router = useRouter();
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const { settings } = useSettings();
+
+  // Вычисляем размер изображения на основе количества колонок
+  const gap = 8; // Отступ между изображениями
+  const padding = 8; // Отступ по краям экрана
+  const totalGapsWidth = (settings.gridColumns - 1) * gap; // Общая ширина отступов между колонками
+  const totalPadding = padding * 2; // Общая ширина отступов по краям
+  const availableWidth = width - totalPadding - totalGapsWidth; // Доступная ширина для изображений
+  const imageSize = Math.floor(availableWidth / settings.gridColumns); // Размер одного изображения
 
   // Добавляем протокол к URL
   const imageUrl = image.file_url.startsWith('http') 
@@ -37,17 +46,15 @@ export const AnimeImage: React.FC<AnimeImageProps> = ({ image }) => {
 
   return (
     <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
-      <View style={styles.container}>
+      <View style={[styles.container, { width: imageSize, height: imageSize }]}>
         <Image
           source={{ uri: imageUrl }}
-          style={styles.image}
+          style={[styles.image, { width: imageSize, height: imageSize }]}
           onLoadStart={() => {
-            console.log('Image load started');
             setLoading(true);
             setError(null);
           }}
           onLoadEnd={() => {
-            console.log('Image load ended');
             setLoading(false);
           }}
           onError={(e) => {
@@ -56,10 +63,6 @@ export const AnimeImage: React.FC<AnimeImageProps> = ({ image }) => {
             setLoading(false);
           }}
           resizeMode="cover"
-          cachePolicy="memory-disk"
-          contentFit="cover"
-          transition={300}
-          priority="high"
         />
         {loading && (
           <View style={styles.loadingContainer}>
@@ -78,14 +81,13 @@ export const AnimeImage: React.FC<AnimeImageProps> = ({ image }) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
+    margin: 4,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#1a1a1a',
   },
   image: {
-    width: IMAGE_SIZE,
-    height: IMAGE_SIZE,
+    flex: 1,
   },
   loadingContainer: {
     ...StyleSheet.absoluteFillObject,

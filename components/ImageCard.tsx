@@ -48,7 +48,7 @@ export default function ImageCard({ image }: ImageCardProps) {
             contentFit="cover"
             transition={300}
             cachePolicy="memory-disk"
-            placeholder={require('../../assets/placeholder/image-placeholder.png')}
+            placeholder={require('../assets/placeholder/image-placeholder.png')}
             recyclingKey={image._id.toString()}
           />
         )}
