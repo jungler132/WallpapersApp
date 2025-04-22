@@ -161,20 +161,21 @@ export default function ImageDetailsScreen() {
       const fileName = `wp_${image._id}.jpg`;
       const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
       
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const base64 = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.readAsDataURL(blob);
-      });
+      // Скачиваем изображение напрямую в файл
+      const downloadResult = await FileSystem.downloadAsync(
+        imageUrl,
+        fileUri
+      );
 
-      await FileSystem.writeAsStringAsync(fileUri, base64 as string, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      if (downloadResult.status !== 200) {
+        throw new Error('Failed to download image');
+      }
 
-      await Sharing.shareAsync(fileUri);
-      await FileSystem.deleteAsync(fileUri);
+      // Шарим файл
+      await Sharing.shareAsync(downloadResult.uri);
+      
+      // Удаляем временный файл
+      await FileSystem.deleteAsync(fileUri, { idempotent: true });
     } catch (error) {
       console.error('Error sharing image:', error);
       Alert.alert('Error', 'Failed to share image');
