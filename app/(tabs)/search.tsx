@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, ActivityIndicator, Dimensions, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +20,7 @@ export default function SearchScreen() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [tagSearch, setTagSearch] = useState('');
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Загрузка тегов
   const { data: tags, isLoading: isLoadingTags } = useQuery({
@@ -88,14 +89,35 @@ export default function SearchScreen() {
     }
   };
 
+  const debouncedLoadImages = useCallback((loadMore = false) => {
+    // Очищаем предыдущий таймаут, если он есть
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Устанавливаем новый таймаут
+    const timeout = setTimeout(() => {
+      loadImages(loadMore);
+    }, 500); // Задержка 500мс
+
+    setSearchTimeout(timeout);
+  }, [searchTimeout]);
+
   // Автоматический поиск при изменении выбранных тегов
   useEffect(() => {
     if (selectedTags.length > 0) {
-      loadImages();
+      debouncedLoadImages();
     } else {
       setImages([]);
       setHasSearched(false);
     }
+
+    // Очищаем таймаут при размонтировании компонента
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
   }, [selectedTags]);
 
   const handleLoadMore = () => {
