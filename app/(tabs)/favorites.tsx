@@ -98,6 +98,7 @@ export default function FavoritesScreen() {
               transition={1000}
               cachePolicy="memory-disk"
               placeholder={require('../../assets/placeholder/image-placeholder.png')}
+              placeholderContentFit="contain"
               recyclingKey={item._id.toString()}
             />
           </TouchableOpacity>

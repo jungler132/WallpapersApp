@@ -218,6 +218,7 @@ export default function SearchScreen() {
           transition={300}
           cachePolicy="memory-disk"
           placeholder={require('../../assets/placeholder/image-placeholder.png')}
+          placeholderContentFit="contain"
         />
       </TouchableOpacity>
     );
