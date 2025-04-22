@@ -60,66 +60,98 @@ interface ApiResponse<T> {
 }
 
 export const useTopAnime = () => {
-  return useQuery<Anime[]>({
+  return useInfiniteQuery({
     queryKey: ['topAnime'],
-    queryFn: async () => {
+    queryFn: async ({ pageParam = 1 }) => {
       const response = await axios.get<ApiResponse<Anime>>(`${BASE_URL}/top/anime`, {
         params: {
+          page: pageParam,
           limit: 25,
           filter: 'bypopularity'
         }
       });
-      return response.data.data;
-    }
+      return response.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination?.has_next_page) {
+        return lastPage.pagination.current_page + 1;
+      }
+      return undefined;
+    },
   });
 };
 
 export const useSeasonalAnime = (season: AnimeSeason, year: number) => {
-  return useQuery<Anime[]>({
+  return useInfiniteQuery({
     queryKey: ['seasonalAnime', season, year],
-    queryFn: async () => {
+    queryFn: async ({ pageParam = 1 }) => {
       const response = await axios.get<ApiResponse<Anime>>(`${BASE_URL}/seasons/${year}/${season}`, {
         params: {
+          page: pageParam,
           limit: 25,
           sfw: true
         }
       });
-      return response.data.data;
+      return response.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination?.has_next_page) {
+        return lastPage.pagination.current_page + 1;
+      }
+      return undefined;
     },
     enabled: !!season && !!year,
   });
 };
 
 export const useCurrentSeasonAnime = () => {
-  return useQuery<Anime[]>({
+  return useInfiniteQuery({
     queryKey: ['currentSeason'],
-    queryFn: async () => {
+    queryFn: async ({ pageParam = 1 }) => {
       const response = await axios.get<ApiResponse<Anime>>(`${BASE_URL}/seasons/now`, {
         params: {
+          page: pageParam,
           limit: 25,
           sfw: true
         }
       });
-      return response.data.data;
-    }
+      return response.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination?.has_next_page) {
+        return lastPage.pagination.current_page + 1;
+      }
+      return undefined;
+    },
   });
 };
 
 export const useAnimeByStatus = (status: 'airing' | 'complete' | 'upcoming') => {
-  return useQuery<Anime[]>({
+  return useInfiniteQuery({
     queryKey: ['animeByStatus', status],
-    queryFn: async () => {
+    queryFn: async ({ pageParam = 1 }) => {
       const response = await axios.get<ApiResponse<Anime>>(`${BASE_URL}/anime`, {
         params: {
           status,
+          page: pageParam,
           limit: 25,
           sfw: true,
           order_by: 'popularity',
           sort: 'desc'
         }
       });
-      return response.data.data;
-    }
+      return response.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination?.has_next_page) {
+        return lastPage.pagination.current_page + 1;
+      }
+      return undefined;
+    },
   });
 };
 

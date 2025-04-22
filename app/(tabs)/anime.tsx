@@ -26,38 +26,155 @@ export default function AnimeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('top');
   const [selectedSeason, setSelectedSeason] = useState<AnimeSeason>('winter');
-  const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showYearPicker, setShowYearPicker] = useState(false);
   const [showSeasonalMenu, setShowSeasonalMenu] = useState(false);
 
-  const { data: topAnime, isLoading: isLoadingTop } = useTopAnime();
-  const { data: seasonalAnime, isLoading: isLoadingSeasonal } = useSeasonalAnime(selectedSeason, selectedYear);
-  const { data: currentSeasonAnime, isLoading: isLoadingOngoing } = useCurrentSeasonAnime();
-  const { data: finishedAnime, isLoading: isLoadingFinished } = useAnimeByStatus('complete');
-  const { data: upcomingAnime, isLoading: isLoadingUpcoming } = useAnimeByStatus('upcoming');
-  const { 
-    data: searchData, 
-    isLoading: isLoadingSearch,
-    isError,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage
+  const {
+    data: topAnimeData,
+    fetchNextPage: fetchNextTopAnime,
+    hasNextPage: hasNextTopAnimePage,
+    isFetchingNextPage: isFetchingNextTopAnimePage
+  } = useTopAnime();
+
+  const {
+    data: seasonalAnimeData,
+    fetchNextPage: fetchNextSeasonalAnime,
+    hasNextPage: hasNextSeasonalPage,
+    isFetchingNextPage: isFetchingNextSeasonalPage
+  } = useSeasonalAnime(selectedSeason, selectedYear);
+
+  const {
+    data: currentSeasonData,
+    fetchNextPage: fetchNextCurrentSeason,
+    hasNextPage: hasNextCurrentSeasonPage,
+    isFetchingNextPage: isFetchingNextCurrentSeasonPage
+  } = useCurrentSeasonAnime();
+
+  const {
+    data: ongoingAnimeData,
+    fetchNextPage: fetchNextOngoingAnime,
+    hasNextPage: hasNextOngoingPage,
+    isFetchingNextPage: isFetchingNextOngoingPage
+  } = useAnimeByStatus('airing');
+
+  const {
+    data: completedAnimeData,
+    fetchNextPage: fetchNextCompletedAnime,
+    hasNextPage: hasNextCompletedPage,
+    isFetchingNextPage: isFetchingNextCompletedPage
+  } = useAnimeByStatus('complete');
+
+  const {
+    data: upcomingAnimeData,
+    fetchNextPage: fetchNextUpcomingAnime,
+    hasNextPage: hasNextUpcomingPage,
+    isFetchingNextPage: isFetchingNextUpcomingPage
+  } = useAnimeByStatus('upcoming');
+
+  const {
+    data: searchData,
+    fetchNextPage: fetchNextSearch,
+    hasNextPage: hasNextSearchPage,
+    isFetchingNextPage: isFetchingNextSearchPage
   } = useAnimeSearch(searchQuery);
 
-  const getAnimeList = () => {
-    if (searchQuery) return searchData?.pages.flatMap(page => page.data);
+  const removeDuplicates = (animeList: Anime[]) => {
+    const seen = new Set();
+    return animeList.filter(anime => {
+      const duplicate = seen.has(anime.mal_id);
+      seen.add(anime.mal_id);
+      return !duplicate;
+    });
+  };
+
+  const getAnimeData = () => {
+    let data: Anime[] = [];
+    
+    if (searchQuery) {
+      data = searchData?.pages.flatMap(page => page.data) ?? [];
+    } else {
+      switch (selectedFilter) {
+        case 'top':
+          data = topAnimeData?.pages.flatMap(page => page.data) ?? [];
+          break;
+        case 'seasonal':
+          data = seasonalAnimeData?.pages.flatMap(page => page.data) ?? [];
+          break;
+        case 'ongoing':
+          data = ongoingAnimeData?.pages.flatMap(page => page.data) ?? [];
+          break;
+        case 'finished':
+          data = completedAnimeData?.pages.flatMap(page => page.data) ?? [];
+          break;
+        case 'upcoming':
+          data = upcomingAnimeData?.pages.flatMap(page => page.data) ?? [];
+          break;
+        default:
+          data = [];
+      }
+    }
+    
+    return removeDuplicates(data);
+  };
+
+  const loadMore = () => {
+    if (searchQuery) {
+      if (hasNextSearchPage && !isFetchingNextSearchPage) {
+        fetchNextSearch();
+      }
+      return;
+    }
+
     switch (selectedFilter) {
-      case 'top': return topAnime;
-      case 'seasonal': return seasonalAnime;
-      case 'ongoing': return currentSeasonAnime;
-      case 'finished': return finishedAnime;
-      case 'upcoming': return upcomingAnime;
-      default: return topAnime;
+      case 'top':
+        if (hasNextTopAnimePage && !isFetchingNextTopAnimePage) {
+          fetchNextTopAnime();
+        }
+        break;
+      case 'seasonal':
+        if (hasNextSeasonalPage && !isFetchingNextSeasonalPage) {
+          fetchNextSeasonalAnime();
+        }
+        break;
+      case 'ongoing':
+        if (hasNextOngoingPage && !isFetchingNextOngoingPage) {
+          fetchNextOngoingAnime();
+        }
+        break;
+      case 'finished':
+        if (hasNextCompletedPage && !isFetchingNextCompletedPage) {
+          fetchNextCompletedAnime();
+        }
+        break;
+      case 'upcoming':
+        if (hasNextUpcomingPage && !isFetchingNextUpcomingPage) {
+          fetchNextUpcomingAnime();
+        }
+        break;
     }
   };
 
-  const animeList = getAnimeList();
+  const isLoading = () => {
+    if (searchQuery) {
+      return isFetchingNextSearchPage;
+    }
+
+    switch (selectedFilter) {
+      case 'top':
+        return isFetchingNextTopAnimePage;
+      case 'seasonal':
+        return isFetchingNextSeasonalPage;
+      case 'ongoing':
+        return isFetchingNextOngoingPage;
+      case 'finished':
+        return isFetchingNextCompletedPage;
+      case 'upcoming':
+        return isFetchingNextUpcomingPage;
+      default:
+        return false;
+    }
+  };
 
   const renderAnimeItem = useCallback(({ item }: { item: Anime }) => (
     <TouchableOpacity
@@ -70,53 +187,57 @@ export default function AnimeScreen() {
       }}
       activeOpacity={0.7}
     >
-      <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: item.images.jpg.image_url }}
-          style={styles.animeImage}
-          resizeMode="cover"
-        />
-        <View style={styles.scoreContainer}>
-          <Ionicons name="star" size={12} color={COLORS.accent} />
-          <Text style={styles.scoreText}>{item.score?.toFixed(2) || 'N/A'}</Text>
+      <View style={styles.animeContent}>
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: item.images.jpg.image_url }}
+            style={styles.animeImage}
+            resizeMode="cover"
+          />
+          <View style={styles.scoreContainer}>
+            <Ionicons name="star" size={12} color={COLORS.accent} />
+            <Text style={styles.scoreText}>{item.score?.toFixed(2) || 'N/A'}</Text>
+          </View>
         </View>
-      </View>
-      <View style={styles.animeInfo}>
-        <View style={styles.titleContainer}>
-          <Text style={styles.animeTitle} numberOfLines={2}>
-            {item.title}
-          </Text>
-          {item.title_japanese && (
-            <Text style={styles.japaneseTitle} numberOfLines={1}>
-              {item.title_japanese}
-            </Text>
-          )}
-        </View>
-        <View style={styles.metaInfo}>
-          <View style={styles.metaRow}>
-            <Ionicons name="tv-outline" size={14} color={COLORS.textSecondary} />
-            <Text style={styles.metaText}>{item.type || 'Unknown'}</Text>
-            {item.episodes && (
-              <>
-                <Text style={styles.metaDot}>•</Text>
-                <Text style={styles.metaText}>{item.episodes} eps</Text>
-              </>
+        <View style={styles.animeInfo}>
+          <View style={styles.infoContent}>
+            <View style={styles.titleContainer}>
+              <Text style={styles.animeTitle} numberOfLines={2}>
+                {item.title}
+              </Text>
+              {item.title_japanese && (
+                <Text style={styles.japaneseTitle} numberOfLines={1}>
+                  {item.title_japanese}
+                </Text>
+              )}
+            </View>
+            <View style={styles.metaRow}>
+              <Ionicons name="tv-outline" size={14} color={COLORS.textSecondary} />
+              <Text style={styles.metaText}>{item.type || 'Unknown'}</Text>
+              {item.episodes && (
+                <>
+                  <Text style={styles.metaDot}>•</Text>
+                  <Text style={styles.metaText}>{item.episodes} eps</Text>
+                </>
+              )}
+            </View>
+            {item.studios && item.studios.length > 0 && (
+              <Text style={styles.studioText} numberOfLines={1}>
+                {item.studios[0].name}
+              </Text>
             )}
           </View>
-          {item.studios && item.studios.length > 0 && (
-            <Text style={styles.studioText} numberOfLines={1}>
-              {item.studios[0].name}
-            </Text>
-          )}
-          {item.genres && item.genres.length > 0 && (
-            <View style={styles.genreContainer}>
-              {item.genres.slice(0, 2).map((genre, index) => (
-                <View key={index} style={styles.genreTag}>
-                  <Text style={styles.genreText}>{genre.name}</Text>
-                </View>
-              ))}
-            </View>
-          )}
+          <View style={styles.bottomContent}>
+            {item.genres && item.genres.length > 0 && (
+              <View style={styles.genreContainer}>
+                {item.genres.slice(0, 2).map((genre, index) => (
+                  <View key={index} style={styles.genreTag}>
+                    <Text style={styles.genreText}>{genre.name}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -128,27 +249,10 @@ export default function AnimeScreen() {
         {selectedSeason.charAt(0).toUpperCase() + selectedSeason.slice(1)} {selectedYear}
       </Text>
       <Text style={styles.seasonalSubtitle}>
-        {seasonalAnime?.length || 0} anime this season
+        {seasonalAnimeData?.pages?.[0]?.data?.length || 0} anime this season
       </Text>
     </View>
   );
-
-  const renderFooter = () => {
-    if (!isFetchingNextPage) return null;
-    return (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color={COLORS.accent} />
-      </View>
-    );
-  };
-
-  const handleLoadMore = () => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  };
-
-  const isLoading = isLoadingTop || isLoadingSearch || isLoadingSeasonal || isLoadingOngoing || isLoadingFinished || isLoadingUpcoming;
 
   const toggleSeasonalMenu = () => {
     if (selectedFilter === 'seasonal') {
@@ -159,18 +263,10 @@ export default function AnimeScreen() {
     }
   };
 
-  if (isLoadingTop && !topAnime) {
+  if (isLoading() && !getAnimeData().length) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
-      </View>
-    );
-  }
-
-  if (isError) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Error loading anime: {error?.message}</Text>
+        <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
   }
@@ -229,11 +325,11 @@ export default function AnimeScreen() {
           </ScrollView>
 
           <TouchableOpacity
+            onPress={toggleSeasonalMenu}
             style={[
               styles.seasonalMainButton,
-              selectedFilter === 'seasonal' && styles.seasonalMainButtonActive
+              showSeasonalMenu && styles.seasonalMainButtonActive
             ]}
-            onPress={toggleSeasonalMenu}
           >
             <View style={styles.seasonalButtonContent}>
               <Ionicons 
@@ -314,24 +410,20 @@ export default function AnimeScreen() {
         )}
 
         <FlatList
-          data={animeList}
+          data={getAnimeData()}
           renderItem={renderAnimeItem}
-          keyExtractor={(item, index) => `${item.mal_id}-${index}`}
+          keyExtractor={(item) => item.mal_id.toString()}
+          numColumns={2}
           contentContainerStyle={styles.listContainer}
-          onEndReached={handleLoadMore}
+          onEndReached={loadMore}
           onEndReachedThreshold={0.5}
-          ListFooterComponent={renderFooter}
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          initialNumToRender={8}
-          ListEmptyComponent={
-            isLoading ? (
-              <ActivityIndicator color={COLORS.accent} size="large" style={styles.loader} />
-            ) : (
-              <Text style={styles.emptyText}>No anime found</Text>
-            )
-          }
+          ListFooterComponent={() => (
+            isLoading() ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#0000ff" />
+              </View>
+            ) : null
+          )}
         />
       </View>
     </>
@@ -344,30 +436,17 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 20,
-    backgroundColor: COLORS.primary,
-  },
-  errorText: {
-    color: COLORS.accent,
-    textAlign: 'center',
+    alignItems: 'center',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.secondary,
-    margin: 16,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    height: 48,
+    margin: 10,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    height: 40,
   },
   searchIcon: {
     marginRight: 8,
@@ -396,26 +475,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   seasonalMainButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
     backgroundColor: COLORS.secondary,
-    borderRadius: 16,
-    marginTop: 12,
-    marginHorizontal: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    borderRadius: 8,
+    marginHorizontal: 5,
+  },
+  seasonalMainButtonActive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: COLORS.accent,
+    borderRadius: 8,
+    marginHorizontal: 5,
   },
   seasonalButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   seasonalMainText: {
     color: COLORS.textSecondary,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     marginLeft: 12,
     flex: 1,
@@ -526,10 +610,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listContainer: {
-    padding: 16,
+    paddingHorizontal: 8,
+    paddingTop: 8,
   },
   animeItem: {
-    flexDirection: 'row',
+    width: (width - 48) / 2,
+    marginHorizontal: 8,
     marginBottom: 16,
     backgroundColor: COLORS.cardBg,
     borderRadius: 12,
@@ -540,11 +626,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
+  animeContent: {
+    flex: 1,
+    minHeight: 180,
+    display: 'flex',
+    flexDirection: 'column',
+  },
   imageContainer: {
-    position: 'relative',
-    width: 120,
-    height: 180,
-    borderRadius: 12,
+    width: '100%',
+    height: 200,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     overflow: 'hidden',
   },
   animeImage: {
@@ -568,15 +660,24 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   animeInfo: {
-    flex: 1,
     padding: 12,
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
     justifyContent: 'space-between',
+  },
+  infoContent: {
+    flex: 1,
+  },
+  bottomContent: {
+    marginTop: 'auto',
+    paddingTop: 8,
   },
   titleContainer: {
     marginBottom: 8,
   },
   animeTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 4,
@@ -587,12 +688,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   metaInfo: {
-    gap: 8,
+    marginTop: 'auto',
+    gap: 4,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   metaText: {
     color: COLORS.textSecondary,
@@ -621,18 +723,5 @@ const styles = StyleSheet.create({
   genreText: {
     color: COLORS.text,
     fontSize: 10,
-  },
-  footerLoader: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  loader: {
-    marginTop: 20,
-  },
-  emptyText: {
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 16,
   },
 }); 
