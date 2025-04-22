@@ -28,6 +28,7 @@ export default function AnimeScreen() {
   const [selectedSeason, setSelectedSeason] = useState<AnimeSeason>('winter');
   const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
   const [showYearPicker, setShowYearPicker] = useState(false);
+  const [showSeasonalMenu, setShowSeasonalMenu] = useState(false);
 
   const { data: topAnime, isLoading: isLoadingTop } = useTopAnime();
   const { data: seasonalAnime, isLoading: isLoadingSeasonal } = useSeasonalAnime(selectedSeason, selectedYear);
@@ -149,6 +150,15 @@ export default function AnimeScreen() {
 
   const isLoading = isLoadingTop || isLoadingSearch || isLoadingSeasonal || isLoadingOngoing || isLoadingFinished || isLoadingUpcoming;
 
+  const toggleSeasonalMenu = () => {
+    if (selectedFilter === 'seasonal') {
+      setShowSeasonalMenu(!showSeasonalMenu);
+    } else {
+      setSelectedFilter('seasonal');
+      setShowSeasonalMenu(true);
+    }
+  };
+
   if (isLoadingTop && !topAnime) {
     return (
       <View style={styles.loadingContainer}>
@@ -191,19 +201,28 @@ export default function AnimeScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
             <TouchableOpacity
               style={[styles.filterButton, selectedFilter === 'top' && styles.filterButtonActive]}
-              onPress={() => setSelectedFilter('top')}
+              onPress={() => {
+                setSelectedFilter('top');
+                setShowSeasonalMenu(false);
+              }}
             >
               <Text style={[styles.filterText, selectedFilter === 'top' && styles.filterTextActive]}>Top Anime</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterButton, selectedFilter === 'ongoing' && styles.filterButtonActive]}
-              onPress={() => setSelectedFilter('ongoing')}
+              onPress={() => {
+                setSelectedFilter('ongoing');
+                setShowSeasonalMenu(false);
+              }}
             >
               <Text style={[styles.filterText, selectedFilter === 'ongoing' && styles.filterTextActive]}>Ongoing</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterButton, selectedFilter === 'upcoming' && styles.filterButtonActive]}
-              onPress={() => setSelectedFilter('upcoming')}
+              onPress={() => {
+                setSelectedFilter('upcoming');
+                setShowSeasonalMenu(false);
+              }}
             >
               <Text style={[styles.filterText, selectedFilter === 'upcoming' && styles.filterTextActive]}>Upcoming</Text>
             </TouchableOpacity>
@@ -214,23 +233,32 @@ export default function AnimeScreen() {
               styles.seasonalMainButton,
               selectedFilter === 'seasonal' && styles.seasonalMainButtonActive
             ]}
-            onPress={() => setSelectedFilter('seasonal')}
+            onPress={toggleSeasonalMenu}
           >
-            <Text style={[styles.seasonalMainText, selectedFilter === 'seasonal' && styles.seasonalMainTextActive]}>
-              Seasonal
-            </Text>
-            <Ionicons
-              name="chevron-down"
-              size={16}
-              color={selectedFilter === 'seasonal' ? COLORS.text : COLORS.textSecondary}
-              style={styles.seasonalIcon}
-            />
+            <View style={styles.seasonalButtonContent}>
+              <Ionicons 
+                name={selectedFilter === 'seasonal' ? 'calendar' : 'calendar-outline'} 
+                size={24} 
+                color={selectedFilter === 'seasonal' ? COLORS.text : COLORS.textSecondary} 
+              />
+              <Text style={[
+                styles.seasonalMainText, 
+                selectedFilter === 'seasonal' && styles.seasonalMainTextActive
+              ]}>
+                {selectedSeason.charAt(0).toUpperCase() + selectedSeason.slice(1)} {selectedYear}
+              </Text>
+              <Ionicons
+                name={showSeasonalMenu ? "chevron-up" : "chevron-down"}
+                size={24}
+                color={selectedFilter === 'seasonal' ? COLORS.text : COLORS.textSecondary}
+                style={styles.seasonalIcon}
+              />
+            </View>
           </TouchableOpacity>
         </View>
 
-        {selectedFilter === 'seasonal' && (
+        {showSeasonalMenu && (
           <View style={styles.seasonalFilters}>
-            {renderSeasonalHeader()}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.seasonRow}>
               {SEASONS.map((season) => (
                 <TouchableOpacity
@@ -368,22 +396,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   seasonalMainButton: {
+    backgroundColor: COLORS.secondary,
+    borderRadius: 16,
+    marginTop: 12,
+    marginHorizontal: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  seasonalButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.accent,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
-    marginVertical: 8,
-  },
-  seasonalMainButtonActive: {
-    backgroundColor: COLORS.accent,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
   seasonalMainText: {
-    color: COLORS.text,
-    fontSize: 16,
+    color: COLORS.textSecondary,
+    fontSize: 18,
     fontWeight: '600',
+    marginLeft: 12,
+    flex: 1,
   },
   seasonalMainTextActive: {
     color: COLORS.text,

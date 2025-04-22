@@ -1,20 +1,22 @@
 import React from 'react';
-import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useAnimeDetails } from '../hooks/useAnime';
 import { Ionicons } from '@expo/vector-icons';
 
 const COLORS = {
-  primary: '#1a1a1a',
-  secondary: '#2a2a2a',
-  accent: '#FF3366',
+  primary: '#121212',
+  secondary: '#1E1E1E',
+  accent: '#FF4081',
   text: '#FFFFFF',
-  textSecondary: '#888888',
+  textSecondary: '#9E9E9E',
+  border: '#2C2C2C',
+  cardBg: '#1A1A1A',
 };
 
 export default function AnimeDetailsScreen() {
   const { id } = useLocalSearchParams();
-  const { data: animeDetails, isLoading, isError, error } = useAnimeDetails(id);
+  const { data: anime, isLoading, isError } = useAnimeDetails(Number(id));
 
   if (isLoading) {
     return (
@@ -24,72 +26,102 @@ export default function AnimeDetailsScreen() {
     );
   }
 
-  if (isError) {
+  if (isError || !anime) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Error loading anime details: {error?.message}</Text>
-      </View>
-    );
-  }
-
-  if (!animeDetails) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>No anime details found</Text>
+        <Text style={styles.errorText}>Failed to load anime details</Text>
       </View>
     );
   }
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
-          title: animeDetails.title,
-          headerBackTitle: 'Back',
+      <Stack.Screen
+        options={{
+          title: anime.title,
           headerStyle: {
             backgroundColor: COLORS.primary,
           },
           headerTintColor: COLORS.text,
-        }} 
+          headerShadowVisible: false,
+        }}
       />
       <ScrollView style={styles.container}>
-        <Image
-          source={{ uri: animeDetails.images.jpg.large_image_url }}
-          style={styles.animeImage}
-        />
-        <View style={styles.detailsContainer}>
-          <Text style={styles.title}>{animeDetails.title}</Text>
-          <Text style={styles.japaneseTitle}>{animeDetails.title_japanese}</Text>
-          
-          <View style={styles.infoContainer}>
-            <View style={styles.infoRow}>
-              <Ionicons name="star" size={20} style={styles.infoIcon} />
-              <Text style={styles.infoText}>Score: {animeDetails.score}</Text>
+        <View style={styles.header}>
+          <Image
+            source={{ uri: anime.images.jpg.large_image_url }}
+            style={styles.coverImage}
+            resizeMode="cover"
+          />
+          <View style={styles.overlay}>
+            <View style={styles.titleContainer}>
+              <Text style={styles.title}>{anime.title}</Text>
+              {anime.title_japanese && (
+                <Text style={styles.japaneseTitle}>{anime.title_japanese}</Text>
+              )}
             </View>
-            <View style={styles.infoRow}>
-              <Ionicons name="film" size={20} style={styles.infoIcon} />
-              <Text style={styles.infoText}>Episodes: {animeDetails.episodes}</Text>
+          </View>
+        </View>
+
+        <View style={styles.content}>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Ionicons name="star" size={20} color={COLORS.accent} />
+              <Text style={styles.statValue}>{anime.score || 'N/A'}</Text>
+              <Text style={styles.statLabel}>Score</Text>
             </View>
-            <View style={styles.infoRow}>
-              <Ionicons name="time" size={20} style={styles.infoIcon} />
-              <Text style={styles.infoText}>Status: {animeDetails.status}</Text>
+            <View style={styles.statItem}>
+              <Ionicons name="people" size={20} color={COLORS.accent} />
+              <Text style={styles.statValue}>{anime.members?.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Members</Text>
             </View>
-            <View style={styles.infoRow}>
-              <Ionicons name="calendar" size={20} style={styles.infoIcon} />
-              <Text style={styles.infoText}>Aired: {animeDetails.aired.string}</Text>
+            <View style={styles.statItem}>
+              <Ionicons name="heart" size={20} color={COLORS.accent} />
+              <Text style={styles.statValue}>{anime.favorites?.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Favorites</Text>
             </View>
           </View>
 
-          <View style={styles.genresContainer}>
-            {animeDetails.genres.map((genre, index) => (
-              <View key={index} style={styles.genre}>
-                <Text style={styles.genreText}>{genre.name}</Text>
+          <View style={styles.infoSection}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Type</Text>
+              <Text style={styles.infoValue}>{anime.type}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Episodes</Text>
+              <Text style={styles.infoValue}>{anime.episodes || 'Unknown'}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Status</Text>
+              <Text style={styles.infoValue}>{anime.status}</Text>
+            </View>
+            {anime.studios && anime.studios.length > 0 && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Studio</Text>
+                <Text style={styles.infoValue}>{anime.studios[0].name}</Text>
               </View>
-            ))}
+            )}
           </View>
 
-          <Text style={styles.synopsisTitle}>Synopsis</Text>
-          <Text style={styles.synopsis}>{animeDetails.synopsis}</Text>
+          {anime.genres && anime.genres.length > 0 && (
+            <View style={styles.genresContainer}>
+              <Text style={styles.sectionTitle}>Genres</Text>
+              <View style={styles.genresList}>
+                {anime.genres.map((genre, index) => (
+                  <View key={index} style={styles.genreTag}>
+                    <Text style={styles.genreText}>{genre.name}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {anime.synopsis && (
+            <View style={styles.synopsisContainer}>
+              <Text style={styles.sectionTitle}>Synopsis</Text>
+              <Text style={styles.synopsis}>{anime.synopsis}</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </>
@@ -111,113 +143,116 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
     backgroundColor: COLORS.primary,
   },
   errorText: {
     color: COLORS.accent,
-    textAlign: 'center',
+    fontSize: 16,
   },
-  animeImage: {
-    width: '100%',
+  header: {
     height: 300,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4.65,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
+    position: 'relative',
   },
-  detailsContainer: {
-    padding: 16,
+  coverImage: {
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  titleContainer: {
+    marginBottom: 8,
   },
   title: {
+    color: COLORS.text,
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
-    color: COLORS.text,
+    marginBottom: 4,
   },
   japaneseTitle: {
-    fontSize: 18,
     color: COLORS.textSecondary,
-    marginBottom: 16,
-    fontStyle: 'italic',
+    fontSize: 16,
   },
-  infoContainer: {
-    backgroundColor: COLORS.secondary,
+  content: {
     padding: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 24,
+    backgroundColor: COLORS.secondary,
     borderRadius: 12,
-    marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
+    padding: 16,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
+  statLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  infoSection: {
+    backgroundColor: COLORS.secondary,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
   },
   infoRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  infoIcon: {
-    marginRight: 8,
-    color: COLORS.accent,
+  infoLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
   },
-  infoText: {
-    fontSize: 16,
-    color: COLORS.text,
-  },
-  genresContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 20,
-  },
-  genre: {
-    backgroundColor: COLORS.accent,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 1.41,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  genreText: {
+  infoValue: {
     color: COLORS.text,
     fontSize: 14,
     fontWeight: '500',
   },
-  synopsisTitle: {
-    fontSize: 20,
+  genresContainer: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    color: COLORS.text,
+    fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 12,
+  },
+  genresList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  genreTag: {
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  genreText: {
     color: COLORS.text,
+    fontSize: 14,
+  },
+  synopsisContainer: {
+    marginBottom: 24,
   },
   synopsis: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: COLORS.textSecondary,
+    color: COLORS.text,
+    fontSize: 14,
+    lineHeight: 20,
   },
 }); 

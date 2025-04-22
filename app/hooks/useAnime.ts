@@ -148,4 +148,15 @@ export const useAnimeSearch = (query: string) => {
     },
     enabled: query.length > 0,
   });
+};
+
+export const useAnimeDetails = (id: number) => {
+  return useQuery<Anime>({
+    queryKey: ['animeDetails', id],
+    queryFn: async () => {
+      const response = await axios.get<{ data: Anime }>(`${BASE_URL}/anime/${id}`);
+      return response.data.data;
+    },
+    enabled: !!id,
+  });
 }; 
