@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, TextInput, ScrollView, Dimensions } from 'react-native';
+import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, TextInput, ScrollView, Dimensions, Modal } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useTopAnime, useAnimeSearch, Anime, useSeasonalAnime, useCurrentSeasonAnime, useAnimeByStatus, AnimeSeason } from '../hooks/useAnime';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ const COLORS = {
   border: '#2C2C2C',
   cardBg: '#1A1A1A',
   seasonalBg: '#2A2A2A',
+  overlay: 'rgba(0, 0, 0, 0.5)',
 };
 
 const { width } = Dimensions.get('window');
@@ -26,6 +27,7 @@ export default function AnimeScreen() {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('top');
   const [selectedSeason, setSelectedSeason] = useState<AnimeSeason>('winter');
   const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
+  const [showYearPicker, setShowYearPicker] = useState(false);
 
   const { data: topAnime, isLoading: isLoadingTop } = useTopAnime();
   const { data: seasonalAnime, isLoading: isLoadingSeasonal } = useSeasonalAnime(selectedSeason, selectedYear);
@@ -67,16 +69,53 @@ export default function AnimeScreen() {
       }}
       activeOpacity={0.7}
     >
-      <Image
-        source={{ uri: item.images.jpg.image_url }}
-        style={styles.animeImage}
-        resizeMode="cover"
-      />
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: item.images.jpg.image_url }}
+          style={styles.animeImage}
+          resizeMode="cover"
+        />
+        <View style={styles.scoreContainer}>
+          <Ionicons name="star" size={12} color={COLORS.accent} />
+          <Text style={styles.scoreText}>{item.score?.toFixed(2) || 'N/A'}</Text>
+        </View>
+      </View>
       <View style={styles.animeInfo}>
-        <Text style={styles.animeTitle} numberOfLines={2}>{item.title}</Text>
-        <View style={styles.animeScore}>
-          <Ionicons name="star" size={16} color={COLORS.accent} style={styles.scoreIcon} />
-          <Text style={styles.scoreText}>{item.score || 'N/A'}</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.animeTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
+          {item.title_japanese && (
+            <Text style={styles.japaneseTitle} numberOfLines={1}>
+              {item.title_japanese}
+            </Text>
+          )}
+        </View>
+        <View style={styles.metaInfo}>
+          <View style={styles.metaRow}>
+            <Ionicons name="tv-outline" size={14} color={COLORS.textSecondary} />
+            <Text style={styles.metaText}>{item.type || 'Unknown'}</Text>
+            {item.episodes && (
+              <>
+                <Text style={styles.metaDot}>•</Text>
+                <Text style={styles.metaText}>{item.episodes} eps</Text>
+              </>
+            )}
+          </View>
+          {item.studios && item.studios.length > 0 && (
+            <Text style={styles.studioText} numberOfLines={1}>
+              {item.studios[0].name}
+            </Text>
+          )}
+          {item.genres && item.genres.length > 0 && (
+            <View style={styles.genreContainer}>
+              {item.genres.slice(0, 2).map((genre, index) => (
+                <View key={index} style={styles.genreTag}>
+                  <Text style={styles.genreText}>{genre.name}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -205,17 +244,44 @@ export default function AnimeScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.yearRow}>
-              {Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i).map((year) => (
-                <TouchableOpacity
-                  key={year}
-                  style={[styles.yearButton, selectedYear === year && styles.yearButtonActive]}
-                  onPress={() => setSelectedYear(year)}
-                >
-                  <Text style={[styles.yearText, selectedYear === year && styles.yearTextActive]}>{year}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <TouchableOpacity
+              style={styles.yearSelector}
+              onPress={() => setShowYearPicker(true)}
+            >
+              <Text style={styles.yearSelectorText}>{selectedYear}</Text>
+              <Ionicons name="chevron-down" size={20} color={COLORS.text} />
+            </TouchableOpacity>
+            <Modal
+              visible={showYearPicker}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowYearPicker(false)}
+            >
+              <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setShowYearPicker(false)}
+              >
+                <View style={styles.yearPickerContainer}>
+                  <ScrollView>
+                    {Array.from({ length: 30 }, (_, i) => CURRENT_YEAR - i).map((year) => (
+                      <TouchableOpacity
+                        key={year}
+                        style={[styles.yearOption, selectedYear === year && styles.yearOptionActive]}
+                        onPress={() => {
+                          setSelectedYear(year);
+                          setShowYearPicker(false);
+                        }}
+                      >
+                        <Text style={[styles.yearOptionText, selectedYear === year && styles.yearOptionTextActive]}>
+                          {year}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </TouchableOpacity>
+            </Modal>
           </View>
         )}
 
@@ -360,9 +426,6 @@ const styles = StyleSheet.create({
   seasonRow: {
     marginBottom: 12,
   },
-  yearRow: {
-    marginBottom: 8,
-  },
   seasonButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
@@ -384,25 +447,47 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontWeight: '600',
   },
-  yearButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: COLORS.secondary,
-    borderRadius: 16,
-    marginRight: 12,
-    minWidth: 70,
+  yearSelector: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.secondary,
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 8,
   },
-  yearButtonActive: {
-    backgroundColor: COLORS.accent,
-  },
-  yearText: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
+  yearSelectorText: {
+    color: COLORS.text,
+    fontSize: 16,
     fontWeight: '500',
   },
-  yearTextActive: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: COLORS.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  yearPickerContainer: {
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 12,
+    width: '80%',
+    maxHeight: '60%',
+    padding: 16,
+  },
+  yearOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  yearOptionActive: {
+    backgroundColor: COLORS.accent,
+  },
+  yearOptionText: {
     color: COLORS.text,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  yearOptionTextActive: {
     fontWeight: '600',
   },
   listContainer: {
@@ -420,32 +505,87 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
+  imageContainer: {
+    position: 'relative',
+    width: 120,
+    height: 180,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
   animeImage: {
-    width: 100,
-    height: 150,
+    width: '100%',
+    height: '100%',
+  },
+  scoreContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 12,
+    padding: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  scoreText: {
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   animeInfo: {
     flex: 1,
     padding: 12,
     justifyContent: 'space-between',
   },
+  titleContainer: {
+    marginBottom: 8,
+  },
   animeTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  animeScore: {
+  japaneseTitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
+  },
+  metaInfo: {
+    gap: 8,
+  },
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
-  scoreIcon: {
-    marginRight: 4,
+  metaText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
   },
-  scoreText: {
-    fontSize: 14,
+  metaDot: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+  },
+  studioText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  genreContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  genreTag: {
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  genreText: {
     color: COLORS.text,
-    fontWeight: '500',
+    fontSize: 10,
   },
   footerLoader: {
     paddingVertical: 20,

@@ -15,10 +15,34 @@ export interface Anime {
     };
   };
   title: string;
+  title_english: string;
+  title_japanese: string;
+  type: string;
+  source: string;
+  episodes: number;
+  status: string;
+  airing: boolean;
+  aired: {
+    from: string;
+    to: string;
+  };
+  duration: string;
+  rating: string;
   score: number;
+  scored_by: number;
+  rank: number;
+  popularity: number;
+  members: number;
+  favorites: number;
+  synopsis: string;
   season?: string;
   year?: number;
-  status: string;
+  studios: Array<{
+    name: string;
+  }>;
+  genres: Array<{
+    name: string;
+  }>;
 }
 
 interface ApiResponse<T> {
@@ -41,7 +65,8 @@ export const useTopAnime = () => {
     queryFn: async () => {
       const response = await axios.get<ApiResponse<Anime>>(`${BASE_URL}/top/anime`, {
         params: {
-          limit: 20,
+          limit: 25,
+          filter: 'bypopularity'
         }
       });
       return response.data.data;
@@ -53,7 +78,12 @@ export const useSeasonalAnime = (season: AnimeSeason, year: number) => {
   return useQuery<Anime[]>({
     queryKey: ['seasonalAnime', season, year],
     queryFn: async () => {
-      const response = await axios.get<ApiResponse<Anime>>(`${BASE_URL}/seasons/${year}/${season}`);
+      const response = await axios.get<ApiResponse<Anime>>(`${BASE_URL}/seasons/${year}/${season}`, {
+        params: {
+          limit: 25,
+          sfw: true
+        }
+      });
       return response.data.data;
     },
     enabled: !!season && !!year,
@@ -64,7 +94,12 @@ export const useCurrentSeasonAnime = () => {
   return useQuery<Anime[]>({
     queryKey: ['currentSeason'],
     queryFn: async () => {
-      const response = await axios.get<ApiResponse<Anime>>(`${BASE_URL}/seasons/now`);
+      const response = await axios.get<ApiResponse<Anime>>(`${BASE_URL}/seasons/now`, {
+        params: {
+          limit: 25,
+          sfw: true
+        }
+      });
       return response.data.data;
     }
   });
@@ -77,7 +112,10 @@ export const useAnimeByStatus = (status: 'airing' | 'complete' | 'upcoming') => 
       const response = await axios.get<ApiResponse<Anime>>(`${BASE_URL}/anime`, {
         params: {
           status,
-          limit: 20,
+          limit: 25,
+          sfw: true,
+          order_by: 'popularity',
+          sort: 'desc'
         }
       });
       return response.data.data;
@@ -93,7 +131,10 @@ export const useAnimeSearch = (query: string) => {
         params: {
           q: query,
           page: pageParam,
-          limit: 20,
+          limit: 25,
+          sfw: true,
+          order_by: 'popularity',
+          sort: 'desc'
         }
       });
       return response.data;
