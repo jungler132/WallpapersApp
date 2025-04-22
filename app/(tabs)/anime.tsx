@@ -1,33 +1,41 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, TextInput, Animated, Dimensions } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, TextInput, ScrollView, Dimensions } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { useTopAnime, useAnimeSearch, Anime, useAnimeByStatus, AnimeStatus } from '../hooks/useAnime';
+import { useTopAnime, useAnimeSearch, Anime, useSeasonalAnime, useCurrentSeasonAnime, useAnimeByStatus, AnimeSeason } from '../hooks/useAnime';
 import { Ionicons } from '@expo/vector-icons';
 
 const COLORS = {
-  primary: '#1a1a1a',
-  secondary: '#2a2a2a',
-  accent: '#FF3366',
+  primary: '#121212',
+  secondary: '#1E1E1E',
+  accent: '#FF4081',
   text: '#FFFFFF',
-  textSecondary: '#888888',
+  textSecondary: '#9E9E9E',
+  border: '#2C2C2C',
+  cardBg: '#1A1A1A',
+  seasonalBg: '#2A2A2A',
 };
 
-type FilterType = 'ongoing' | 'finished' | 'upcoming';
+const { width } = Dimensions.get('window');
 
-const FILTER_BUTTON_WIDTH = (Dimensions.get('window').width - 32) / 3; // ширина экрана минус отступы, делённая на 3
+type FilterType = 'top' | 'seasonal' | 'ongoing' | 'finished' | 'upcoming';
+const SEASONS: AnimeSeason[] = ['winter', 'spring', 'summer', 'fall'];
+const CURRENT_YEAR = new Date().getFullYear();
 
 export default function AnimeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<FilterType>('ongoing');
-  const [slideAnim] = useState(new Animated.Value(0));
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>('top');
+  const [selectedSeason, setSelectedSeason] = useState<AnimeSeason>('winter');
+  const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
 
-  const { data: ongoingAnime, isLoading: isLoadingOngoing } = useAnimeByStatus('airing');
+  const { data: topAnime, isLoading: isLoadingTop } = useTopAnime();
+  const { data: seasonalAnime, isLoading: isLoadingSeasonal } = useSeasonalAnime(selectedSeason, selectedYear);
+  const { data: currentSeasonAnime, isLoading: isLoadingOngoing } = useCurrentSeasonAnime();
   const { data: finishedAnime, isLoading: isLoadingFinished } = useAnimeByStatus('complete');
   const { data: upcomingAnime, isLoading: isLoadingUpcoming } = useAnimeByStatus('upcoming');
   const { 
     data: searchData, 
-    isLoading: isLoadingSearch, 
-    isError, 
+    isLoading: isLoadingSearch,
+    isError,
     error,
     fetchNextPage,
     hasNextPage,
@@ -37,32 +45,18 @@ export default function AnimeScreen() {
   const getAnimeList = () => {
     if (searchQuery) return searchData?.pages.flatMap(page => page.data);
     switch (selectedFilter) {
-      case 'ongoing': return ongoingAnime;
+      case 'top': return topAnime;
+      case 'seasonal': return seasonalAnime;
+      case 'ongoing': return currentSeasonAnime;
       case 'finished': return finishedAnime;
       case 'upcoming': return upcomingAnime;
-      default: return ongoingAnime;
+      default: return topAnime;
     }
-  };
-
-  const handleFilterChange = (filter: FilterType) => {
-    setSelectedFilter(filter);
-    const position = {
-      'ongoing': 0,
-      'finished': FILTER_BUTTON_WIDTH,
-      'upcoming': FILTER_BUTTON_WIDTH * 2
-    }[filter];
-
-    Animated.spring(slideAnim, {
-      toValue: position,
-      useNativeDriver: true,
-      tension: 50,
-      friction: 7
-    }).start();
   };
 
   const animeList = getAnimeList();
 
-  const renderAnimeItem = ({ item }: { item: Anime }) => (
+  const renderAnimeItem = useCallback(({ item }: { item: Anime }) => (
     <TouchableOpacity
       style={styles.animeItem}
       onPress={() => {
@@ -76,15 +70,27 @@ export default function AnimeScreen() {
       <Image
         source={{ uri: item.images.jpg.image_url }}
         style={styles.animeImage}
+        resizeMode="cover"
       />
       <View style={styles.animeInfo}>
         <Text style={styles.animeTitle} numberOfLines={2}>{item.title}</Text>
         <View style={styles.animeScore}>
           <Ionicons name="star" size={16} color={COLORS.accent} style={styles.scoreIcon} />
-          <Text style={styles.scoreText}>{item.score}</Text>
+          <Text style={styles.scoreText}>{item.score || 'N/A'}</Text>
         </View>
       </View>
     </TouchableOpacity>
+  ), []);
+
+  const renderSeasonalHeader = () => (
+    <View style={styles.seasonalHeader}>
+      <Text style={styles.seasonalTitle}>
+        {selectedSeason.charAt(0).toUpperCase() + selectedSeason.slice(1)} {selectedYear}
+      </Text>
+      <Text style={styles.seasonalSubtitle}>
+        {seasonalAnime?.length || 0} anime this season
+      </Text>
+    </View>
   );
 
   const renderFooter = () => {
@@ -102,9 +108,9 @@ export default function AnimeScreen() {
     }
   };
 
-  const isLoading = isLoadingOngoing || isLoadingFinished || isLoadingUpcoming || isLoadingSearch;
+  const isLoading = isLoadingTop || isLoadingSearch || isLoadingSeasonal || isLoadingOngoing || isLoadingFinished || isLoadingUpcoming;
 
-  if (isLoading && !animeList) {
+  if (isLoadingTop && !topAnime) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.accent} />
@@ -128,6 +134,7 @@ export default function AnimeScreen() {
           backgroundColor: COLORS.primary,
         },
         headerTintColor: COLORS.text,
+        headerShadowVisible: false,
       }} />
       <View style={styles.container}>
         <View style={styles.searchContainer}>
@@ -140,54 +147,97 @@ export default function AnimeScreen() {
             onChangeText={setSearchQuery}
           />
         </View>
-        
-        <View style={styles.filterContainer}>
-          <View style={styles.filterBackground}>
-            <Animated.View 
-              style={[
-                styles.filterSlider,
-                {
-                  transform: [{
-                    translateX: slideAnim
-                  }]
-                }
-              ]} 
+
+        <View style={styles.filterSection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
+            <TouchableOpacity
+              style={[styles.filterButton, selectedFilter === 'top' && styles.filterButtonActive]}
+              onPress={() => setSelectedFilter('top')}
+            >
+              <Text style={[styles.filterText, selectedFilter === 'top' && styles.filterTextActive]}>Top Anime</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterButton, selectedFilter === 'ongoing' && styles.filterButtonActive]}
+              onPress={() => setSelectedFilter('ongoing')}
+            >
+              <Text style={[styles.filterText, selectedFilter === 'ongoing' && styles.filterTextActive]}>Ongoing</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterButton, selectedFilter === 'upcoming' && styles.filterButtonActive]}
+              onPress={() => setSelectedFilter('upcoming')}
+            >
+              <Text style={[styles.filterText, selectedFilter === 'upcoming' && styles.filterTextActive]}>Upcoming</Text>
+            </TouchableOpacity>
+          </ScrollView>
+
+          <TouchableOpacity
+            style={[
+              styles.seasonalMainButton,
+              selectedFilter === 'seasonal' && styles.seasonalMainButtonActive
+            ]}
+            onPress={() => setSelectedFilter('seasonal')}
+          >
+            <Text style={[styles.seasonalMainText, selectedFilter === 'seasonal' && styles.seasonalMainTextActive]}>
+              Seasonal
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={16}
+              color={selectedFilter === 'seasonal' ? COLORS.text : COLORS.textSecondary}
+              style={styles.seasonalIcon}
             />
-          </View>
-          <TouchableOpacity
-            style={[styles.filterButton, { width: FILTER_BUTTON_WIDTH }]}
-            onPress={() => handleFilterChange('ongoing')}
-          >
-            <Text style={[styles.filterText, selectedFilter === 'ongoing' && styles.filterTextActive]}>
-              Ongoing
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterButton, { width: FILTER_BUTTON_WIDTH }]}
-            onPress={() => handleFilterChange('finished')}
-          >
-            <Text style={[styles.filterText, selectedFilter === 'finished' && styles.filterTextActive]}>
-              Finished
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterButton, { width: FILTER_BUTTON_WIDTH }]}
-            onPress={() => handleFilterChange('upcoming')}
-          >
-            <Text style={[styles.filterText, selectedFilter === 'upcoming' && styles.filterTextActive]}>
-              Upcoming
-            </Text>
           </TouchableOpacity>
         </View>
+
+        {selectedFilter === 'seasonal' && (
+          <View style={styles.seasonalFilters}>
+            {renderSeasonalHeader()}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.seasonRow}>
+              {SEASONS.map((season) => (
+                <TouchableOpacity
+                  key={season}
+                  style={[styles.seasonButton, selectedSeason === season && styles.seasonButtonActive]}
+                  onPress={() => setSelectedSeason(season)}
+                >
+                  <Text style={[styles.seasonText, selectedSeason === season && styles.seasonTextActive]}>
+                    {season.charAt(0).toUpperCase() + season.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.yearRow}>
+              {Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i).map((year) => (
+                <TouchableOpacity
+                  key={year}
+                  style={[styles.yearButton, selectedYear === year && styles.yearButtonActive]}
+                  onPress={() => setSelectedYear(year)}
+                >
+                  <Text style={[styles.yearText, selectedYear === year && styles.yearTextActive]}>{year}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         <FlatList
           data={animeList}
           renderItem={renderAnimeItem}
-          keyExtractor={(item) => `${item.mal_id}-${item.title}`}
+          keyExtractor={(item, index) => `${item.mal_id}-${index}`}
           contentContainerStyle={styles.listContainer}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={renderFooter}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={8}
+          ListEmptyComponent={
+            isLoading ? (
+              <ActivityIndicator color={COLORS.accent} size="large" style={styles.loader} />
+            ) : (
+              <Text style={styles.emptyText}>No anime found</Text>
+            )
+          }
         />
       </View>
     </>
@@ -223,58 +273,60 @@ const styles = StyleSheet.create({
     margin: 16,
     paddingHorizontal: 16,
     borderRadius: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
+    height: 48,
   },
   searchIcon: {
     marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    height: 40,
     color: COLORS.text,
     fontSize: 16,
+    height: '100%',
+  },
+  filterSection: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
   filterContainer: {
     flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    height: 40,
-    backgroundColor: COLORS.secondary,
-    borderRadius: 20,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  filterBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 20,
-  },
-  filterSlider: {
-    position: 'absolute',
-    top: 2,
-    left: 2,
-    width: FILTER_BUTTON_WIDTH - 4,
-    height: 36,
-    backgroundColor: COLORS.accent,
-    borderRadius: 18,
+    marginBottom: 12,
   },
   filterButton: {
-    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: COLORS.secondary,
+    borderRadius: 20,
+    marginRight: 12,
+    minWidth: 100,
     alignItems: 'center',
-    zIndex: 1,
+  },
+  seasonalMainButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    marginVertical: 8,
+  },
+  seasonalMainButtonActive: {
+    backgroundColor: COLORS.accent,
+  },
+  seasonalMainText: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  seasonalMainTextActive: {
+    color: COLORS.text,
+  },
+  seasonalIcon: {
+    marginLeft: 8,
+  },
+  filterButtonActive: {
+    backgroundColor: COLORS.accent,
   },
   filterText: {
     color: COLORS.textSecondary,
@@ -283,7 +335,75 @@ const styles = StyleSheet.create({
   },
   filterTextActive: {
     color: COLORS.text,
-    fontWeight: 'bold',
+    fontWeight: '600',
+  },
+  seasonalFilters: {
+    marginHorizontal: '5%',
+    marginBottom: 16,
+    backgroundColor: COLORS.seasonalBg,
+    borderRadius: 16,
+    padding: 16,
+  },
+  seasonalHeader: {
+    marginBottom: 16,
+  },
+  seasonalTitle: {
+    color: COLORS.text,
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  seasonalSubtitle: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    marginTop: 4,
+  },
+  seasonRow: {
+    marginBottom: 12,
+  },
+  yearRow: {
+    marginBottom: 8,
+  },
+  seasonButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: COLORS.secondary,
+    borderRadius: 16,
+    marginRight: 12,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  seasonButtonActive: {
+    backgroundColor: COLORS.accent,
+  },
+  seasonText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  seasonTextActive: {
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  yearButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: COLORS.secondary,
+    borderRadius: 16,
+    marginRight: 12,
+    minWidth: 70,
+    alignItems: 'center',
+  },
+  yearButtonActive: {
+    backgroundColor: COLORS.accent,
+  },
+  yearText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  yearTextActive: {
+    color: COLORS.text,
+    fontWeight: '600',
   },
   listContainer: {
     padding: 16,
@@ -291,26 +411,18 @@ const styles = StyleSheet.create({
   animeItem: {
     flexDirection: 'row',
     marginBottom: 16,
-    backgroundColor: COLORS.secondary,
+    backgroundColor: COLORS.cardBg,
     borderRadius: 12,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   animeImage: {
     width: 100,
     height: 150,
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
   },
   animeInfo: {
     flex: 1,
@@ -319,7 +431,7 @@ const styles = StyleSheet.create({
   },
   animeTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: COLORS.text,
     marginBottom: 8,
   },
@@ -333,9 +445,19 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: 14,
     color: COLORS.text,
+    fontWeight: '500',
   },
   footerLoader: {
     paddingVertical: 20,
     alignItems: 'center',
+  },
+  loader: {
+    marginTop: 20,
+  },
+  emptyText: {
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
   },
 }); 
