@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Text, ActivityIndicator, Dimensions } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, Text, ActivityIndicator, Dimensions, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -19,12 +19,32 @@ export default function SearchScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [tagSearch, setTagSearch] = useState('');
 
   // Загрузка тегов
   const { data: tags, isLoading: isLoadingTags } = useQuery({
     queryKey: ['tags'],
     queryFn: getTags,
   });
+
+  // Фильтрация тегов
+  const filteredTags = useMemo(() => {
+    if (!tags) return [];
+    if (!tagSearch) return tags;
+    
+    const searchLower = tagSearch.toLowerCase();
+    return tags.filter(tag => 
+      tag.name.toLowerCase().includes(searchLower)
+    );
+  }, [tags, tagSearch]);
+
+  // Популярные теги (топ 10 по количеству)
+  const popularTags = useMemo(() => {
+    if (!tags) return [];
+    return [...tags]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }, [tags]);
 
   const loadImages = async (loadMore = false) => {
     if (loadMore) {
@@ -182,20 +202,68 @@ export default function SearchScreen() {
     );
   };
 
+  const renderTagsList = (title: string, data: TagData[]) => (
+    <View style={styles.tagsSection}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <FlatList
+        data={data}
+        renderItem={renderTag}
+        keyExtractor={(item) => item.name}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tagsList}
+      />
+    </View>
+  );
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.tagsContainer}>
-        <Text style={styles.sectionTitle}>Popular Tags</Text>
-        {isLoadingTags ? (
-          <ActivityIndicator color="#FF3366" />
-        ) : (
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <MaterialCommunityIcons name="magnify" size={24} color="#666666" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search tags..."
+            placeholderTextColor="#666666"
+            value={tagSearch}
+            onChangeText={setTagSearch}
+          />
+          {tagSearch ? (
+            <TouchableOpacity onPress={() => setTagSearch('')}>
+              <MaterialCommunityIcons name="close" size={20} color="#666666" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {!tagSearch && renderTagsList('Popular Tags', popularTags)}
+        
+        {tagSearch && filteredTags.length > 0 && (
+          renderTagsList('Search Results', filteredTags)
+        )}
+
+        {tagSearch && filteredTags.length === 0 && (
+          <View style={styles.noTagsFound}>
+            <Text style={styles.noTagsFoundText}>No tags found</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.selectedTagsContainer}>
+        {selectedTags.length > 0 && (
           <FlatList
-            data={tags}
-            renderItem={renderTag}
-            keyExtractor={(item) => item.name}
+            data={selectedTags}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.selectedTag}
+                onPress={() => handleTagPress(item)}
+              >
+                <Text style={styles.selectedTagText}>#{item}</Text>
+                <MaterialCommunityIcons name="close" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tagsList}
+            contentContainerStyle={styles.selectedTagsList}
           />
         )}
       </View>
@@ -231,8 +299,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a1a1a',
   },
-  tagsContainer: {
+  searchContainer: {
     padding: 16,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2a2a2a',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  tagsSection: {
+    marginBottom: 16,
   },
   sectionTitle: {
     color: '#FFFFFF',
@@ -252,13 +338,22 @@ const styles = StyleSheet.create({
   },
   selectedTag: {
     backgroundColor: '#FF3366',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
   },
   tagText: {
     color: '#FFFFFF',
     fontSize: 14,
   },
   selectedTagText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: 'bold',
+    marginRight: 4,
   },
   imagesContainer: {
     flex: 1,
@@ -266,7 +361,7 @@ const styles = StyleSheet.create({
   },
   imagesList: {
     paddingBottom: 16,
-    gap: 16, // Добавляем отступ между строками
+    gap: 16,
   },
   imageContainer: {
     width: ITEM_WIDTH,
@@ -311,5 +406,20 @@ const styles = StyleSheet.create({
   },
   emptyList: {
     flexGrow: 1,
+  },
+  noTagsFound: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  noTagsFoundText: {
+    color: '#666666',
+    fontSize: 16,
+  },
+  selectedTagsContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  selectedTagsList: {
+    gap: 8,
   },
 }); 
