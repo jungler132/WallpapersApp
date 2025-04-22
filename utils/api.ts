@@ -51,38 +51,48 @@ export const getRandomImage = async (params?: {
   }
 };
 
-export const getRandomImages = async (tags?: string[]): Promise<ImageData[]> => {
+export const getRandomImages = async (tags: string[] = []): Promise<ImageData[]> => {
+  console.log('🔍 [API] Starting getRandomImages with tags:', tags);
   try {
-    // Создаем массив промисов для параллельной загрузки изображений
-    const promises = Array(10).fill(null).map(async () => {
-      const params: any = {
-        compress: true
-      };
-      
-      if (tags && tags.length > 0) {
-        params.in = tags.join(',');
-      }
+    const params: any = {
+      compress: true,
+    };
 
-      const response = await fetch(`${API_BASE_URL}/image.json`, {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'AnimeWallpapers/1.0'
-        },
-        params
-      });
+    if (tags.length > 0) {
+      params.in = tags.join(',');
+      console.log('📤 [API] Request params:', params);
+    }
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
-      }
-
-      return response.json();
+    console.log('🌐 [API] Making request to:', `${API_BASE_URL}/image.json`);
+    const response = await axios.get(`${API_BASE_URL}/image.json`, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'AnimeWallpapers/1.0'
+      },
+      params
     });
 
-    // Ждем выполнения всех запросов
-    const results = await Promise.all(promises);
-    return results;
+    console.log('📥 [API] Response status:', response.status);
+    
+    if (!response.data) {
+      console.error('❌ [API] No data received in response');
+      throw new Error('No data received from API');
+    }
+
+    console.log('✅ [API] Successfully received image data');
+    console.log('📊 [API] Image tags:', response.data.tags);
+    console.log('🖼️ [API] Image URL:', response.data.file_url);
+
+    return [response.data];
   } catch (error) {
-    console.error('Error fetching random images:', error);
+    console.error('❌ [API] Error in getRandomImages:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('📡 [API] Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+    }
     throw error;
   }
 };
@@ -104,6 +114,7 @@ export const getImageById = async (id: number): Promise<ImageData> => {
 };
 
 export const getTags = async (): Promise<TagData[]> => {
+  console.log('🔍 [API] Starting getTags request');
   try {
     const response = await axios.get(`${API_BASE_URL}/tags`, {
       headers: {
@@ -111,9 +122,17 @@ export const getTags = async (): Promise<TagData[]> => {
         'User-Agent': 'AnimeWallpapers/1.0'
       }
     });
+
+    console.log('📥 [API] Tags response status:', response.status);
+    console.log('📊 [API] Received tags count:', response.data.length);
+    
+    if (response.data.length > 0) {
+      console.log('📋 [API] First few tags:', response.data.slice(0, 5));
+    }
+
     return response.data;
   } catch (error) {
-    console.error('Error fetching tags:', error);
+    console.error('❌ [API] Error fetching tags:', error);
     throw error;
   }
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, ActivityIndicator, Dimensions, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +13,7 @@ const ITEM_WIDTH = (width - 48) / 2;
 const ITEMS_PER_PAGE = 20;
 
 export default function SearchScreen() {
+  console.log('🚀 [Search] Component mounted');
   const insets = useSafeAreaInsets();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [images, setImages] = useState<ImageData[]>([]);
@@ -21,6 +22,14 @@ export default function SearchScreen() {
   const [hasSearched, setHasSearched] = useState(false);
   const [tagSearch, setTagSearch] = useState('');
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Загрузка тегов
   const { data: tags, isLoading: isLoadingTags } = useQuery({
@@ -30,13 +39,22 @@ export default function SearchScreen() {
 
   // Фильтрация тегов
   const filteredTags = useMemo(() => {
-    if (!tags) return [];
-    if (!tagSearch) return tags;
+    console.log('🔍 [Search] Filtering tags with search:', tagSearch);
+    if (!tags) {
+      console.log('📦 [Search] No tags available yet');
+      return [];
+    }
+    if (!tagSearch) {
+      console.log('📦 [Search] No search term, returning all tags');
+      return tags;
+    }
     
     const searchLower = tagSearch.toLowerCase();
-    return tags.filter(tag => 
+    const filtered = tags.filter(tag => 
       tag.name.toLowerCase().includes(searchLower)
     );
+    console.log('📊 [Search] Filtered tags count:', filtered.length);
+    return filtered;
   }, [tags, tagSearch]);
 
   // Популярные теги (топ 10 по количеству)
@@ -49,55 +67,88 @@ export default function SearchScreen() {
 
   // При запросе новых изображений используем предзагруженные
   const loadImages = async (isLoadMore: boolean = false) => {
+    if (!isMounted.current) return;
+
+    console.log('🔄 [Search] Starting loadImages, isLoadMore:', isLoadMore);
+    console.log('🏷️ [Search] Current selected tags:', selectedTags);
+
     if (!isLoadMore) {
+      console.log('🧹 [Search] Starting new search - clearing all images');
       setIsLoading(true);
+      setImages([]); // Очищаем все изображения при новом поиске
+      setHasSearched(false); // Сбрасываем флаг поиска
     } else {
       setIsLoadingMore(true);
     }
 
     try {
+      console.log('🌐 [Search] Fetching new images...');
       const newImages = await getRandomImages(selectedTags);
+      
+      if (!isMounted.current) return;
+      
+      console.log('✅ [Search] Received new images:', newImages.length);
       setHasSearched(true);
       
       if (isLoadMore) {
+        console.log('📥 [Search] Appending new images to existing ones');
         setImages(prevImages => [...prevImages, ...newImages]);
       } else {
+        console.log('📥 [Search] Setting new images');
         setImages(newImages);
       }
     } catch (error) {
-      console.error('Error loading images:', error);
+      console.error('❌ [Search] Error loading images:', error);
+      if (isMounted.current) {
+        setImages([]);
+        setHasSearched(false);
+      }
     } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
     }
   };
 
   const debouncedLoadImages = useCallback((loadMore = false) => {
-    // Очищаем предыдущий таймаут, если он есть
+    if (!isMounted.current) return;
+
+    console.log('⏱️ [Search] Starting debounced load, loadMore:', loadMore);
     if (searchTimeout) {
+      console.log('🧹 [Search] Clearing previous timeout');
       clearTimeout(searchTimeout);
     }
 
-    // Устанавливаем новый таймаут
     const timeout = setTimeout(() => {
-      loadImages(loadMore);
-    }, 500); // Задержка 500мс
+      if (isMounted.current) {
+        console.log('⏰ [Search] Timeout triggered, loading images');
+        loadImages(loadMore);
+      }
+    }, 500);
 
     setSearchTimeout(timeout);
   }, [searchTimeout]);
 
   // Автоматический поиск при изменении выбранных тегов
   useEffect(() => {
+    if (!isMounted.current) return;
+
+    console.log('🔄 [Search] Selected tags changed:', selectedTags);
     if (selectedTags.length > 0) {
+      console.log('🔍 [Search] Tags selected, starting new search');
+      setImages([]); // Очищаем изображения при изменении тегов
+      setHasSearched(false); // Сбрасываем флаг поиска
       debouncedLoadImages();
     } else {
+      console.log('🧹 [Search] No tags selected, clearing all results');
       setImages([]);
       setHasSearched(false);
     }
 
-    // Очищаем таймаут при размонтировании компонента
     return () => {
       if (searchTimeout) {
+        console.log('🧹 [Search] Cleaning up timeout on unmount');
         clearTimeout(searchTimeout);
       }
     };
@@ -134,15 +185,25 @@ export default function SearchScreen() {
   };
 
   const handleTagPress = (tag: string) => {
+    console.log('👆 [Search] Tag pressed:', tag);
     if (selectedTags.includes(tag)) {
+      console.log('➖ [Search] Removing tag:', tag);
       setSelectedTags(selectedTags.filter(t => t !== tag));
     } else {
+      console.log('➕ [Search] Adding tag:', tag);
       setSelectedTags([...selectedTags, tag]);
     }
+    // Очищаем изображения при изменении тегов
+    setImages([]);
+    setHasSearched(false);
   };
 
   const handleImagePress = (image: ImageData) => {
-    console.log('Image data before navigation:', image);
+    console.log('🖼️ [Search] Image pressed:', {
+      id: image._id,
+      tags: image.tags,
+      url: image.file_url
+    });
     router.push({
       pathname: '/image/[id]',
       params: {
