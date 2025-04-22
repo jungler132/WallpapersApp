@@ -55,11 +55,14 @@ export default function SearchScreen() {
 
     try {
       const tagString = selectedTags.join(',');
+      console.log('Loading images with tags:', tagString);
       const results = await getRandomImages(ITEMS_PER_PAGE, { 
         in: tagString,
         compress: true,
         min_size: 100000
       });
+      
+      console.log('Received images:', results);
       
       if (!results || results.length === 0) {
         if (!loadMore) {
@@ -74,6 +77,7 @@ export default function SearchScreen() {
         );
       });
 
+      console.log('Filtered unique images:', uniqueResults);
       setImages(prevImages => loadMore ? [...prevImages, ...uniqueResults] : uniqueResults);
     } catch (error: any) {
       console.error('Search error:', error);
@@ -133,19 +137,23 @@ export default function SearchScreen() {
   };
 
   const handleImagePress = (image: ImageData) => {
+    console.log('Image data before navigation:', image);
     router.push({
       pathname: '/image/[id]',
       params: {
-        id: image._id,
+        ...image,
+        id: image._id.toString(),
         file_url: image.file_url,
+        cached_uri: '',
         tags: JSON.stringify(image.tags),
         md5: image.md5,
-        width: image.width,
-        height: image.height,
+        width: image.width.toString(),
+        height: image.height.toString(),
         source: image.source,
         author: image.author,
         has_children: image.has_children.toString(),
         _id: image._id.toString(),
+        file_size: image.file_size?.toString() || '0'
       },
     });
   };

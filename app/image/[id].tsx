@@ -38,11 +38,13 @@ export default function ImageDetailsScreen() {
     _id: string;
   }>();
 
+  console.log('Received params:', params);
+
   // Create image data object
   const image: Partial<ImageData> = {
     _id: parseInt(params._id),
     file_url: params.file_url,
-    file_size: parseInt(params.file_size),
+    file_size: parseInt(params.file_size || '0'),
     tags: JSON.parse(params.tags || '[]'),
     md5: params.md5,
     width: parseInt(params.width),
@@ -51,6 +53,8 @@ export default function ImageDetailsScreen() {
     author: params.author,
     has_children: params.has_children === 'true'
   };
+
+  console.log('Processed image data:', image);
 
   // Add protocol to image URL
   const imageUrl = image.file_url?.startsWith('http') 
@@ -65,9 +69,13 @@ export default function ImageDetailsScreen() {
 
   const checkFavoriteStatus = async () => {
     try {
+      console.log('Checking favorite status for image ID:', image._id);
       const favorites = await AsyncStorage.getItem('favorites');
+      console.log('Current favorites:', favorites);
       const favoritesArray = favorites ? JSON.parse(favorites) : [];
-      setIsFavorite(favoritesArray.includes(image._id));
+      const isFav = favoritesArray.includes(image._id);
+      console.log('Is favorite:', isFav);
+      setIsFavorite(isFav);
     } catch (error) {
       console.error('Error checking favorite status:', error);
     }
@@ -75,17 +83,41 @@ export default function ImageDetailsScreen() {
 
   const handleFavoriteToggle = async (newIsFavorite: boolean) => {
     try {
+      console.log('Toggling favorite status:', newIsFavorite, 'for image ID:', image._id);
       const favorites = await AsyncStorage.getItem('favorites');
       let favoritesArray = favorites ? JSON.parse(favorites) : [];
       
       if (newIsFavorite) {
         if (!favoritesArray.includes(image._id)) {
           favoritesArray.push(image._id);
+          
+          // Сохраняем изображение в кэш при добавлении в избранное
+          const cachedImages = await AsyncStorage.getItem('cached_images');
+          let cachedImagesArray = cachedImages ? JSON.parse(cachedImages) : [];
+          
+          // Проверяем, нет ли уже этого изображения в кэше
+          if (!cachedImagesArray.some((img: ImageData) => img._id === image._id)) {
+            cachedImagesArray.push({
+              _id: image._id,
+              file_url: image.file_url,
+              file_size: image.file_size,
+              tags: image.tags,
+              md5: image.md5,
+              width: image.width,
+              height: image.height,
+              source: image.source,
+              author: image.author,
+              has_children: image.has_children
+            });
+            await AsyncStorage.setItem('cached_images', JSON.stringify(cachedImagesArray));
+            console.log('Image saved to cache:', image._id);
+          }
         }
       } else {
         favoritesArray = favoritesArray.filter((id: number) => id !== image._id);
       }
       
+      console.log('New favorites array:', favoritesArray);
       await AsyncStorage.setItem('favorites', JSON.stringify(favoritesArray));
       setIsFavorite(newIsFavorite);
     } catch (error) {
@@ -274,10 +306,12 @@ export default function ImageDetailsScreen() {
             <Text style={styles.detailValue}>{image.width}x{image.height}</Text>
           </View>
           
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>File Size:</Text>
-            <Text style={styles.detailValue}>{formatFileSize(image.file_size || 0)}</Text>
-          </View>
+          {image.file_size && image.file_size > 0 && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>File Size:</Text>
+              <Text style={styles.detailValue}>{formatFileSize(image.file_size)}</Text>
+            </View>
+          )}
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Author:</Text>

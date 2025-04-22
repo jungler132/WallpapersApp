@@ -4,6 +4,7 @@ const API_BASE_URL = 'https://pic.re';
 
 export interface ImageData {
   file_url: string;
+  file_size: number;
   md5: string;
   tags: string[];
   width: number;
