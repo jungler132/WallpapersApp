@@ -51,16 +51,36 @@ export const getRandomImage = async (params?: {
   }
 };
 
-export const getRandomImages = async (count: number = 10, params?: {
-  nin?: string;
-  in?: string;
-  compress?: boolean;
-  min_size?: number;
-  max_size?: number;
-}): Promise<ImageData[]> => {
+export const getRandomImages = async (tags?: string[]): Promise<ImageData[]> => {
   try {
-    const promises = Array(count).fill(null).map(() => getRandomImage(params));
-    return Promise.all(promises);
+    // Создаем массив промисов для параллельной загрузки изображений
+    const promises = Array(10).fill(null).map(async () => {
+      const params: any = {
+        compress: true
+      };
+      
+      if (tags && tags.length > 0) {
+        params.in = tags.join(',');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/image.json`, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'AnimeWallpapers/1.0'
+        },
+        params
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      }
+
+      return response.json();
+    });
+
+    // Ждем выполнения всех запросов
+    const results = await Promise.all(promises);
+    return results;
   } catch (error) {
     console.error('Error fetching random images:', error);
     throw error;

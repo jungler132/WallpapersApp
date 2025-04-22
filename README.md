@@ -799,3 +799,155 @@ const metadata = await axios.get('https://pic.re/images.json', {
   }
 });
 ``` 
+
+## Search and Tags System
+
+### Search Implementation
+
+#### Overview
+The search system in the application is based on tags and allows users to:
+- Search images by multiple tags
+- Combine different tags for more precise results
+- Use popular tags for quick access
+- Filter out unwanted content using excluded tags
+
+#### Search Screen Structure
+1. **Tag Search Input**:
+   - Real-time tag filtering
+   - Suggestions based on input
+   - Shows tag count in database
+
+2. **Popular Tags Section**:
+   - Shows top 10 most used tags
+   - Quick access to common searches
+   - Updates automatically with API data
+
+3. **Selected Tags**:
+   - Visual display of active search tags
+   - Easy removal of individual tags
+   - Clear all tags option
+
+4. **Results Grid**:
+   - 2-column layout
+   - Infinite scroll
+   - Loading states for new content
+
+### Tag System
+
+#### Tag Types
+1. **Content Tags**:
+   - `girl`, `boy` - Gender
+   - `long_hair`, `short_hair` - Hair styles
+   - `red_eyes`, `blue_eyes` - Eye colors
+
+2. **Meta Tags**:
+   - `original` - Original content
+   - `tagme` - Needs tagging
+   - `highres` - High resolution
+
+#### Search Parameters
+
+1. **Include Tags (`in`)**:
+   ```typescript
+   // Example: Search for images with specific tags
+   const params = {
+     in: 'girl,long_hair,blue_eyes'
+   };
+   ```
+
+2. **Exclude Tags (`nin`)**:
+   ```typescript
+   // Example: Exclude specific content
+   const params = {
+     nin: 'gore,violence'
+   };
+   ```
+
+3. **Size Filters**:
+   ```typescript
+   // Example: Filter by image size
+   const params = {
+     min_size: 1024,
+     max_size: 4096
+   };
+   ```
+
+### Search Implementation Details
+
+#### Tag Selection Logic
+```typescript
+const handleTagSelect = (tag: string) => {
+  if (selectedTags.includes(tag)) {
+    // Remove tag if already selected
+    setSelectedTags(prev => prev.filter(t => t !== tag));
+  } else {
+    // Add new tag
+    setSelectedTags(prev => [...prev, tag]);
+  }
+};
+```
+
+#### Search Request
+```typescript
+const searchImages = async (tags: string[]) => {
+  const params = new URLSearchParams();
+  
+  if (tags.length > 0) {
+    params.append('in', tags.join(','));
+  }
+  
+  params.append('compress', 'true');
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/images?${params.toString()}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Search error:', error);
+    throw error;
+  }
+};
+```
+
+### Best Practices
+
+1. **Tag Selection**:
+   - Combine related tags for better results
+   - Use general tags first, then specific
+   - Limit to 5-7 tags for optimal results
+
+2. **Search Performance**:
+   - Use CDN endpoint for image loading
+   - Enable compression for faster loading
+   - Implement proper error handling
+
+3. **User Experience**:
+   - Show loading states for feedback
+   - Provide clear error messages
+   - Maintain selected tags between sessions
+
+### Error Handling
+
+1. **Network Errors**:
+   ```typescript
+   try {
+     const results = await searchImages(tags);
+   } catch (error) {
+     if (error.response?.status === 429) {
+       // Rate limit exceeded
+       showRateLimitError();
+     } else {
+       // General error
+       showSearchError();
+     }
+   }
+   ```
+
+2. **Empty Results**:
+   - Show friendly "No results" message
+   - Suggest removing some tags
+   - Show popular tags as alternatives
+
+3. **Invalid Tags**:
+   - Validate tags before search
+   - Remove invalid characters
+   - Prevent empty tag searches 

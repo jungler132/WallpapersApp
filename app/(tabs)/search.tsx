@@ -47,45 +47,28 @@ export default function SearchScreen() {
       .slice(0, 10);
   }, [tags]);
 
-  const loadImages = async (loadMore = false) => {
-    if (loadMore) {
-      setIsLoadingMore(true);
-    } else {
+  // При запросе новых изображений используем предзагруженные
+  const loadImages = async (isLoadMore: boolean = false) => {
+    if (!isLoadMore) {
       setIsLoading(true);
+    } else {
+      setIsLoadingMore(true);
     }
 
     try {
-      const tagString = selectedTags.join(',');
-      console.log('Loading images with tags:', tagString);
-      const results = await getRandomImages(ITEMS_PER_PAGE, { 
-        in: tagString,
-        compress: true,
-        min_size: 100000
-      });
+      const newImages = await getRandomImages(selectedTags);
+      setHasSearched(true);
       
-      console.log('Received images:', results);
-      
-      if (!results || results.length === 0) {
-        if (!loadMore) {
-          setImages([]);
-        }
-        return;
+      if (isLoadMore) {
+        setImages(prevImages => [...prevImages, ...newImages]);
+      } else {
+        setImages(newImages);
       }
-      
-      const uniqueResults = results.filter((image) => {
-        return !images.some(existingImage => 
-          existingImage._id === image._id || existingImage.md5 === image.md5
-        );
-      });
-
-      console.log('Filtered unique images:', uniqueResults);
-      setImages(prevImages => loadMore ? [...prevImages, ...uniqueResults] : uniqueResults);
-    } catch (error: any) {
-      console.error('Search error:', error);
+    } catch (error) {
+      console.error('Error loading images:', error);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
-      setHasSearched(true);
     }
   };
 
@@ -219,6 +202,7 @@ export default function SearchScreen() {
           cachePolicy="memory-disk"
           placeholder={require('../../assets/placeholder/image-placeholder.png')}
           placeholderContentFit="contain"
+          priority="high"
         />
       </TouchableOpacity>
     );
