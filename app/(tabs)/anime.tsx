@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, TextInput } from 'react-native';
+import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, TextInput, Animated, Dimensions } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { useTopAnime, useAnimeSearch, Anime } from '../hooks/useAnime';
+import { useTopAnime, useAnimeSearch, Anime, useAnimeByStatus, AnimeStatus } from '../hooks/useAnime';
 import { Ionicons } from '@expo/vector-icons';
 
 const COLORS = {
@@ -12,9 +12,18 @@ const COLORS = {
   textSecondary: '#888888',
 };
 
+type FilterType = 'ongoing' | 'finished' | 'upcoming';
+
+const FILTER_BUTTON_WIDTH = (Dimensions.get('window').width - 32) / 3; // ширина экрана минус отступы, делённая на 3
+
 export default function AnimeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { data: topAnime, isLoading: isLoadingTop } = useTopAnime();
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>('ongoing');
+  const [slideAnim] = useState(new Animated.Value(0));
+
+  const { data: ongoingAnime, isLoading: isLoadingOngoing } = useAnimeByStatus('airing');
+  const { data: finishedAnime, isLoading: isLoadingFinished } = useAnimeByStatus('complete');
+  const { data: upcomingAnime, isLoading: isLoadingUpcoming } = useAnimeByStatus('upcoming');
   const { 
     data: searchData, 
     isLoading: isLoadingSearch, 
@@ -25,7 +34,33 @@ export default function AnimeScreen() {
     isFetchingNextPage
   } = useAnimeSearch(searchQuery);
 
-  const animeList = searchQuery ? searchData?.pages.flatMap(page => page.data) : topAnime;
+  const getAnimeList = () => {
+    if (searchQuery) return searchData?.pages.flatMap(page => page.data);
+    switch (selectedFilter) {
+      case 'ongoing': return ongoingAnime;
+      case 'finished': return finishedAnime;
+      case 'upcoming': return upcomingAnime;
+      default: return ongoingAnime;
+    }
+  };
+
+  const handleFilterChange = (filter: FilterType) => {
+    setSelectedFilter(filter);
+    const position = {
+      'ongoing': 0,
+      'finished': FILTER_BUTTON_WIDTH,
+      'upcoming': FILTER_BUTTON_WIDTH * 2
+    }[filter];
+
+    Animated.spring(slideAnim, {
+      toValue: position,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7
+    }).start();
+  };
+
+  const animeList = getAnimeList();
 
   const renderAnimeItem = ({ item }: { item: Anime }) => (
     <TouchableOpacity
@@ -67,9 +102,9 @@ export default function AnimeScreen() {
     }
   };
 
-  const isLoading = isLoadingTop || isLoadingSearch;
+  const isLoading = isLoadingOngoing || isLoadingFinished || isLoadingUpcoming || isLoadingSearch;
 
-  if (isLoadingTop && !topAnime) {
+  if (isLoading && !animeList) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.accent} />
@@ -105,6 +140,46 @@ export default function AnimeScreen() {
             onChangeText={setSearchQuery}
           />
         </View>
+        
+        <View style={styles.filterContainer}>
+          <View style={styles.filterBackground}>
+            <Animated.View 
+              style={[
+                styles.filterSlider,
+                {
+                  transform: [{
+                    translateX: slideAnim
+                  }]
+                }
+              ]} 
+            />
+          </View>
+          <TouchableOpacity
+            style={[styles.filterButton, { width: FILTER_BUTTON_WIDTH }]}
+            onPress={() => handleFilterChange('ongoing')}
+          >
+            <Text style={[styles.filterText, selectedFilter === 'ongoing' && styles.filterTextActive]}>
+              Ongoing
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterButton, { width: FILTER_BUTTON_WIDTH }]}
+            onPress={() => handleFilterChange('finished')}
+          >
+            <Text style={[styles.filterText, selectedFilter === 'finished' && styles.filterTextActive]}>
+              Finished
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterButton, { width: FILTER_BUTTON_WIDTH }]}
+            onPress={() => handleFilterChange('upcoming')}
+          >
+            <Text style={[styles.filterText, selectedFilter === 'upcoming' && styles.filterTextActive]}>
+              Upcoming
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <FlatList
           data={animeList}
           renderItem={renderAnimeItem}
@@ -168,6 +243,47 @@ const styles = StyleSheet.create({
     height: 40,
     color: COLORS.text,
     fontSize: 16,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    height: 40,
+    backgroundColor: COLORS.secondary,
+    borderRadius: 20,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  filterBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+  },
+  filterSlider: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    width: FILTER_BUTTON_WIDTH - 4,
+    height: 36,
+    backgroundColor: COLORS.accent,
+    borderRadius: 18,
+  },
+  filterButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  filterText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  filterTextActive: {
+    color: COLORS.text,
+    fontWeight: 'bold',
   },
   listContainer: {
     padding: 16,

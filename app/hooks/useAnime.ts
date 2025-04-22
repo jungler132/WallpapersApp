@@ -44,6 +44,9 @@ export interface AnimeSearchResponse {
   };
 }
 
+export type AnimeStatus = 'airing' | 'complete' | 'upcoming';
+export type AnimeSeason = 'winter' | 'spring' | 'summer' | 'fall';
+
 // API функции
 const fetchTopAnime = async (): Promise<Anime[]> => {
   const { data } = await axios.get(`${API_BASE_URL}/top/anime`);
@@ -65,6 +68,26 @@ const fetchAnimeSearch = async ({ pageParam = 1, queryKey }: any): Promise<Anime
     },
   });
   return data;
+};
+
+const fetchSeasonalAnime = async (season: AnimeSeason, year: number): Promise<Anime[]> => {
+  const { data } = await axios.get(`${API_BASE_URL}/seasons/${year}/${season}`);
+  return data.data;
+};
+
+const fetchCurrentSeasonAnime = async (): Promise<Anime[]> => {
+  const { data } = await axios.get(`${API_BASE_URL}/seasons/now`);
+  return data.data;
+};
+
+const fetchAnimeByStatus = async (status: AnimeStatus): Promise<Anime[]> => {
+  const { data } = await axios.get(`${API_BASE_URL}/anime`, {
+    params: {
+      status,
+      limit: 20,
+    },
+  });
+  return data.data;
 };
 
 // React Query хуки
@@ -101,5 +124,32 @@ export function useAnimeSearch(searchQuery: string) {
     enabled: !!searchQuery,
     staleTime: 1000 * 60 * 5, // 5 минут
     gcTime: 1000 * 60 * 30, // 30 минут
+  });
+}
+
+export function useSeasonalAnime(season: AnimeSeason, year: number) {
+  return useQuery({
+    queryKey: ['seasonalAnime', season, year],
+    queryFn: () => fetchSeasonalAnime(season, year),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+  });
+}
+
+export function useCurrentSeasonAnime() {
+  return useQuery({
+    queryKey: ['currentSeasonAnime'],
+    queryFn: fetchCurrentSeasonAnime,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+  });
+}
+
+export function useAnimeByStatus(status: AnimeStatus) {
+  return useQuery({
+    queryKey: ['animeByStatus', status],
+    queryFn: () => fetchAnimeByStatus(status),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
   });
 } 
