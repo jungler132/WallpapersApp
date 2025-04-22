@@ -4,12 +4,12 @@ import * as FileSystem from 'expo-file-system';
 
 export type Settings = {
   gridColumns: 1 | 2;
-  maxCacheSize: number; // в байтах
+  maxCacheSize: number; // in bytes
 };
 
 const DEFAULT_SETTINGS: Settings = {
   gridColumns: 2,
-  maxCacheSize: 500 * 1024 * 1024, // 500MB по умолчанию
+  maxCacheSize: 500 * 1024 * 1024, // 500MB by default
 };
 
 const SETTINGS_KEY = '@app_settings';
@@ -20,13 +20,13 @@ export const useSettings = () => {
   const [cacheSize, setCacheSize] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Загрузка настроек при инициализации
+  // Load settings on initialization
   useEffect(() => {
     loadSettings();
     calculateCacheSize();
   }, []);
 
-  // Загрузка настроек из AsyncStorage
+  // Load settings from AsyncStorage
   const loadSettings = async () => {
     try {
       console.log('Loading settings from AsyncStorage...');
@@ -45,7 +45,7 @@ export const useSettings = () => {
     }
   };
 
-  // Сохранение настроек
+  // Save settings
   const saveSettings = async (newSettings: Partial<Settings>) => {
     try {
       console.log('Saving new settings:', newSettings);
@@ -55,7 +55,7 @@ export const useSettings = () => {
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(updatedSettings));
       setSettings(updatedSettings);
       
-      // Проверяем, что настройки действительно сохранились
+      // Check that settings are actually saved
       const savedSettings = await AsyncStorage.getItem(SETTINGS_KEY);
       console.log('Verified saved settings:', savedSettings);
     } catch (error) {

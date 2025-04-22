@@ -72,7 +72,7 @@ export default function FavoritesScreen() {
   if (favorites.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Нет избранных изображений</Text>
+        <Text style={styles.emptyText}>No favorite images</Text>
       </View>
     );
   }

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSettings } from '../../hooks/useSettings';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 export default function SettingsScreen() {
   const {
@@ -21,6 +22,7 @@ export default function SettingsScreen() {
     calculateCacheSize,
     reloadSettings
   } = useSettings();
+  const router = useRouter();
 
   const handleColumnChange = async (columns: 1 | 2) => {
     console.log('Changing columns to:', columns);
@@ -36,15 +38,15 @@ export default function SettingsScreen() {
 
   const handleClearCache = () => {
     Alert.alert(
-      'Очистка кеша',
-      'Вы уверены, что хотите очистить кеш изображений?',
+      'Clear Cache',
+      'Are you sure you want to clear the image cache?',
       [
         {
-          text: 'Отмена',
+          text: 'Cancel',
           style: 'cancel'
         },
         {
-          text: 'Очистить',
+          text: 'Clear',
           style: 'destructive',
           onPress: async () => {
             await clearCache();
@@ -66,7 +68,7 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Отображение сетки</Text>
+        <Text style={styles.sectionTitle}>Grid Display</Text>
         <View style={styles.columnsContainer}>
           {[1, 2].map((columns) => (
             <TouchableOpacity
@@ -91,10 +93,10 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Управление кешем</Text>
+        <Text style={styles.sectionTitle}>Cache Management</Text>
         <View style={styles.cacheInfo}>
           <View style={styles.cacheSize}>
-            <Text style={styles.cacheLabel}>Размер кеша:</Text>
+            <Text style={styles.cacheLabel}>Cache Size:</Text>
             <Text style={styles.cacheValue}>{formattedCacheSize}</Text>
           </View>
           <TouchableOpacity
@@ -102,9 +104,20 @@ export default function SettingsScreen() {
             onPress={handleClearCache}
           >
             <Ionicons name="trash-outline" size={20} color="#FF3366" />
-            <Text style={styles.clearButtonText}>Очистить кеш</Text>
+            <Text style={styles.clearButtonText}>Clear Cache</Text>
           </TouchableOpacity>
         </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>About</Text>
+        <TouchableOpacity
+          style={styles.aboutButton}
+          onPress={() => router.push('/privacy-policy')}
+        >
+          <Ionicons name="document-text-outline" size={20} color="#FF3366" />
+          <Text style={styles.aboutButtonText}>Privacy Policy</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -185,6 +198,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   clearButtonText: {
+    color: '#FF3366',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  aboutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2a2a2a',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  aboutButtonText: {
     color: '#FF3366',
     fontSize: 16,
     fontWeight: 'bold',

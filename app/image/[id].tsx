@@ -38,7 +38,7 @@ export default function ImageDetailsScreen() {
     _id: string;
   }>();
 
-  // Создаем объект с данными изображения
+  // Create image data object
   const image: Partial<ImageData> = {
     _id: parseInt(params._id),
     file_url: params.file_url,
@@ -52,7 +52,7 @@ export default function ImageDetailsScreen() {
     has_children: params.has_children === 'true'
   };
 
-  // Добавляем протокол к URL изображения
+  // Add protocol to image URL
   const imageUrl = image.file_url?.startsWith('http') 
     ? image.file_url 
     : `https://${image.file_url}`;

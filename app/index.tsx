@@ -18,7 +18,7 @@ export default function SplashScreen() {
   const scaleAnim = React.useRef(new Animated.Value(0.5)).current;
 
   useEffect(() => {
-    // Анимация появления
+    // Appearance animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -33,7 +33,7 @@ export default function SplashScreen() {
       }),
     ]).start();
 
-    // Переход на следующий экран через 3 секунды
+    // Transition to next screen after 3 seconds
     const timer = setTimeout(() => {
       router.replace('/(tabs)/feed');
     }, 3000);

@@ -1,30 +1,30 @@
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 
-// Типы для разных размеров изображений
+// Types for different image sizes
 export type ImageSizes = {
-  thumbnail: string;  // Для фида
-  full: string;      // Оригинал для детального просмотра
+  thumbnail: string;  // For feed
+  full: string;      // Original for detailed view
 };
 
-// Кеш для хранения обработанных изображений
+// Cache for storing processed images
 const imageCache: { [key: string]: ImageSizes } = {};
 
 export const processAndCacheImage = async (originalUrl: string): Promise<ImageSizes> => {
-  // Проверяем кеш
+  // Check cache
   if (imageCache[originalUrl]) {
     return imageCache[originalUrl];
   }
 
   try {
-    // Создаем уменьшенную версию для превью
+    // Create a reduced version for preview
     const thumbnailResult = await ImageManipulator.manipulateAsync(
       originalUrl,
       [{ resize: { width: 300 } }],
-      { compress: 0.7, format: 'jpeg' }
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
     );
 
-    // Сохраняем в кеше
+    // Save in cache
     imageCache[originalUrl] = {
       thumbnail: thumbnailResult.uri,
       full: originalUrl
@@ -33,7 +33,7 @@ export const processAndCacheImage = async (originalUrl: string): Promise<ImageSi
     return imageCache[originalUrl];
   } catch (error) {
     console.error('Error processing image:', error);
-    // В случае ошибки возвращаем оригинальные URL
+    // In case of error, return original URLs
     return {
       thumbnail: originalUrl,
       full: originalUrl
@@ -41,7 +41,7 @@ export const processAndCacheImage = async (originalUrl: string): Promise<ImageSi
   }
 };
 
-// Функция для предварительной загрузки оригинального изображения
+// Function for preloading the original image
 export const prefetchFullImage = async (url: string): Promise<void> => {
   try {
     await FileSystem.downloadAsync(
@@ -53,7 +53,7 @@ export const prefetchFullImage = async (url: string): Promise<void> => {
   }
 };
 
-// Очистка кеша
+// Clear cache
 export const clearImageCache = () => {
   Object.keys(imageCache).forEach(key => {
     delete imageCache[key];

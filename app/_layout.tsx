@@ -9,6 +9,13 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="image/[id]" options={{ headerShown: false }} />
+        <Stack.Screen 
+          name="privacy-policy" 
+          options={{ 
+            headerShown: false,
+            presentation: 'modal'
+          }} 
+        />
       </Stack>
       <StatusBar style="light" />
       <Toast />

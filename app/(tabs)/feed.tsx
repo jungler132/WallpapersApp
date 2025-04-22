@@ -16,9 +16,9 @@ export default function FeedScreen() {
   const [isChangingGrid, setIsChangingGrid] = useState(false);
   const { settings, reloadSettings } = useSettings();
 
-  // Вычисляем количество изображений для загрузки на основе количества колонок
+  // Calculate the number of images to load based on the number of columns
   const getLoadCount = () => {
-    // Загружаем по 2 ряда для каждого количества колонок
+    // Load 2 rows for each number of columns
     return settings.gridColumns * 2;
   };
 
@@ -35,11 +35,11 @@ export default function FeedScreen() {
         setImages(prev => [...prev, ...newImages]);
       }
 
-      // Сохраняем изображения в кэш
+      // Save images to cache
       const cachedImages = await AsyncStorage.getItem('cached_images');
       const existingImages = cachedImages ? JSON.parse(cachedImages) : [];
       
-      // Добавляем только новые изображения
+      // Add only new images
       const updatedImages = [...existingImages];
       newImages.forEach(newImage => {
         if (!existingImages.some((img: ImageData) => img._id === newImage._id)) {
@@ -67,14 +67,14 @@ export default function FeedScreen() {
     setIsLoadingMore(false);
   };
 
-  // Загружаем изображения при первом монтировании
+  // Load images on first mount
   useEffect(() => {
     if (images.length === 0) {
       loadImages(true);
     }
   }, []);
 
-  // Обновляем UI при возвращении на экран
+  // Update UI when returning to the screen
   useFocusEffect(
     React.useCallback(() => {
       const updateUI = async () => {
@@ -83,7 +83,7 @@ export default function FeedScreen() {
         await reloadSettings();
         console.log('Current grid columns:', settings.gridColumns);
         setImages(prevImages => [...prevImages]);
-        // Небольшая задержка перед скрытием лоадера для плавности
+        // Small delay before hiding the loader for smoothness
         setTimeout(() => {
           setIsChangingGrid(false);
         }, 300);

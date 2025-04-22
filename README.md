@@ -1,137 +1,137 @@
-я # Anime Wallpapers - Руководство по разработке
+# Anime Wallpapers - Development Guide
 
-## Используемые модули и их назначение
+## Used Modules and Their Purpose
 
-### Навигация
-- **@react-navigation/native** - Основной пакет для навигации
-- **@react-navigation/stack** - Стековая навигация (для переходов между экранами)
-- **@react-navigation/bottom-tabs** - Нижняя навигация (для табов)
-- **react-native-screens** - Оптимизация рендеринга экранов
-- **react-native-safe-area-context** - Безопасные области экрана
+### Navigation
+- **@react-navigation/native** - Main navigation package
+- **@react-navigation/stack** - Stack navigation (for screen transitions)
+- **@react-navigation/bottom-tabs** - Bottom navigation (for tabs)
+- **react-native-screens** - Screen rendering optimization
+- **react-native-safe-area-context** - Safe screen areas
 
-### UI компоненты
-- **@expo/vector-icons** - Иконки (используем Ionicons)
-- **react-native-reanimated** - Анимации
-- **react-native-gesture-handler** - Обработка жестов
+### UI Components
+- **@expo/vector-icons** - Icons (using Ionicons)
+- **react-native-reanimated** - Animations
+- **react-native-gesture-handler** - Gesture handling
 
-### Хранение данных
-- **@react-native-async-storage/async-storage** - Локальное хранилище
-- **react-native-fs** - Работа с файловой системой
+### Data Storage
+- **@react-native-async-storage/async-storage** - Local storage
+- **react-native-fs** - File system operations
 
-### API и сеть
-- **axios** - HTTP запросы
-- **react-query** - Кэширование и управление состоянием запросов
+### API and Network
+- **axios** - HTTP requests
+- **react-query** - Caching and request state management
 
-### Утилиты
-- **date-fns** - Работа с датами
-- **lodash** - Утилиты для работы с данными
+### Utilities
+- **date-fns** - Date handling
+- **lodash** - Data manipulation utilities
 
-## Правила использования модулей
+## Module Usage Rules
 
-### Навигация
-- Для основных переходов между экранами используем `@react-navigation/stack`
-- Для модальных окон используем `@react-navigation/stack` с `presentation: 'modal'`
-- Для нижней навигации используем `@react-navigation/bottom-tabs`
+### Navigation
+- Use `@react-navigation/stack` for main screen transitions
+- Use `@react-navigation/stack` with `presentation: 'modal'` for modal windows
+- Use `@react-navigation/bottom-tabs` for bottom navigation
 
-### Модальные окна
+### Modal Windows
 ```typescript
-// Правильно
+// Correct
 <Stack.Screen 
   name="ModalScreen" 
   component={ModalScreen}
   options={{ presentation: 'modal' }}
 />
 
-// Неправильно
-// Не используем react-native-modal или другие библиотеки для модальных окон
+// Incorrect
+// Do not use react-native-modal or other libraries for modal windows
 ```
 
-### Анимации
+### Animations
 ```typescript
-// Правильно
+// Correct
 import Animated from 'react-native-reanimated';
 
-// Неправильно
-// Не используем Animated из react-native
+// Incorrect
+// Do not use Animated from react-native
 ```
 
-### Хранение данных
+### Data Storage
 ```typescript
-// Правильно
+// Correct
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Неправильно
-// Не используем другие библиотеки для локального хранилища
+// Incorrect
+// Do not use other libraries for local storage
 ```
 
-### API запросы
+### API Requests
 ```typescript
-// Правильно
+// Correct
 import axios from 'axios';
 import { useQuery } from 'react-query';
 
-// Неправильно
-// Не используем fetch напрямую для сложных запросов
+// Incorrect
+// Do not use fetch directly for complex requests
 ```
 
-## Стиль кодирования
+## Coding Style
 
-### Именование файлов и компонентов
-- Файлы компонентов: PascalCase (например, `AnimeImage.tsx`)
-- Файлы утилит: camelCase (например, `api.ts`)
-- Файлы типов: camelCase (например, `navigation.ts`)
-- Экспорты компонентов: default export
-- Экспорты утилит: named exports
+### File and Component Naming
+- Component files: PascalCase (e.g., `AnimeImage.tsx`)
+- Utility files: camelCase (e.g., `api.ts`)
+- Type files: camelCase (e.g., `navigation.ts`)
+- Component exports: default export
+- Utility exports: named exports
 
-### Структура компонента
+### Component Structure
 ```typescript
-// 1. Импорты
+// 1. Imports
 import React from 'react';
 import { ... } from 'react-native';
 import { ... } from '../types';
 import { ... } from '../utils';
 
-// 2. Типы и интерфейсы
+// 2. Types and Interfaces
 interface ComponentProps {
   // ...
 }
 
-// 3. Константы
+// 3. Constants
 const CONSTANT = 'value';
 
-// 4. Компонент
+// 4. Component
 const Component: React.FC<ComponentProps> = ({ prop1, prop2 }) => {
-  // 4.1. Состояния
+  // 4.1. States
   const [state, setState] = React.useState<Type>(initialValue);
 
-  // 4.2. Эффекты
+  // 4.2. Effects
   React.useEffect(() => {
     // ...
   }, []);
 
-  // 4.3. Обработчики
+  // 4.3. Handlers
   const handleEvent = () => {
     // ...
   };
 
-  // 4.4. Рендер
+  // 4.4. Render
   return (
     // ...
   );
 };
 
-// 5. Стили
+// 5. Styles
 const styles = StyleSheet.create({
   // ...
 });
 
-// 6. Экспорт
+// 6. Export
 export default Component;
 ```
 
-### Навигация
+### Navigation
 
-#### Типы навигации
+#### Navigation Types
 ```typescript
 // types/navigation.ts
 export type RootStackParamList = {
@@ -140,39 +140,39 @@ export type RootStackParamList = {
 };
 ```
 
-#### Использование навигации в компонентах
+#### Using Navigation in Components
 ```typescript
-// 1. Импорт типов
+// 1. Import types
 import { RootStackParamList } from '../types/navigation';
 import { StackNavigationProp } from '@react-navigation/stack';
 
-// 2. Определение типа навигации
+// 2. Define navigation type
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
-// 3. Использование в компоненте
+// 3. Use in component
 const navigation = useNavigation<NavigationProp>();
 
-// 4. Навигация
+// 4. Navigation
 navigation.navigate('ScreenName', { param1: value1 });
 ```
 
-#### Параметры экрана
+#### Screen Parameters
 ```typescript
-// Для экрана с параметрами
+// For screen with parameters
 type Props = StackScreenProps<RootStackParamList, 'ScreenName'>;
 
-// Получение параметров
+// Get parameters
 const { param1, param2 } = route.params;
 ```
 
-### Работа с API
+### API Work
 
-#### Структура запросов
+#### Request Structure
 ```typescript
-// 1. Базовый URL
+// 1. Base URL
 const API_BASE_URL = 'https://api.example.com';
 
-// 2. Запрос
+// 2. Request
 const response = await axios.get(`${API_BASE_URL}/endpoint`, {
   headers: {
     'Accept': 'application/json',
@@ -180,13 +180,13 @@ const response = await axios.get(`${API_BASE_URL}/endpoint`, {
   },
 });
 
-// 3. Обработка ответа
+// 3. Response handling
 const data = response.data;
 ```
 
-### Обработка ошибок
+### Error Handling
 
-#### В API запросах
+#### In API Requests
 ```typescript
 try {
   const { data } = await axios.get(url);
@@ -196,21 +196,21 @@ try {
 }
 ```
 
-#### В компонентах
+#### In Components
 ```typescript
 const [error, setError] = React.useState<string | null>(null);
 
 try {
-  // Действие
+  // Action
 } catch (error) {
-  setError('Описание ошибки');
+  setError('Error description');
   console.error('Error:', error);
 }
 ```
 
-### Стилизация
+### Styling
 
-#### Цветовая схема
+#### Color Scheme
 ```typescript
 const COLORS = {
   primary: '#1a1a1a',
@@ -221,7 +221,7 @@ const COLORS = {
 };
 ```
 
-#### Стили компонентов
+#### Component Styles
 ```typescript
 const styles = StyleSheet.create({
   container: {
@@ -232,82 +232,51 @@ const styles = StyleSheet.create({
 });
 ```
 
-### Комментарии
+### Comments
 
-#### Для компонентов
+#### For Components
 ```typescript
 /**
- * Компонент для отображения аниме изображения
- * @param {ImageData} image - Данные изображения
- * @returns {JSX.Element} Компонент изображения
+ * Component for displaying anime image
+ * @param {ImageData} image - Image data
+ * @returns {JSX.Element} Image component
  */
 ```
 
-#### Для функций
+#### For Functions
 ```typescript
 /**
- * Получает случайное изображение с API
- * @returns {Promise<ImageData>} Данные изображения
- * @throws {Error} При ошибке запроса
+ * Gets a random image from API
+ * @returns {Promise<ImageData>} Image data
  */
 ```
 
-### Логирование
-
-#### Уровни логирования
-```typescript
-// Информация
-console.log('Message');
-
-// Предупреждение
-console.warn('Warning message');
-
-// Ошибка
-console.error('Error message');
-```
-
-### Оптимизация
-
-#### Мемоизация
-```typescript
-const memoizedValue = React.useMemo(() => computeExpensiveValue(a, b), [a, b]);
-const memoizedCallback = React.useCallback(() => {
-  doSomething(a, b);
-}, [a, b]);
-```
-
-#### Условный рендеринг
-```typescript
-{condition && <Component />}
-{condition ? <Component1 /> : <Component2 />}
-```
-
-## Структура проекта
+## Structure of the Project
 
 ```
 AnimeWallpapers/
-├── App.tsx                    # Корневой компонент приложения
-├── app/                       # Основная директория приложения
-│   ├── components/            # Переиспользуемые компоненты
-│   │   └── AnimeImage.tsx     # Компонент для отображения аниме изображения
-│   ├── screens/               # Экранные компоненты
-│   │   ├── HomeScreen.tsx     # Главный экран со списком изображений
-│   │   └── ImageDetailsScreen.tsx # Экран деталей изображения
-│   ├── types/                 # Типы TypeScript
-│   │   └── navigation.ts      # Типы для навигации
-│   └── utils/                 # Утилиты и вспомогательные функции
-│       └── api.ts             # API для работы с изображениями
+├── App.tsx                    # Root component of the application
+├── app/                       # Main application directory
+│   ├── components/            # Reusable components
+│   │   └── AnimeImage.tsx     # Component for displaying anime image
+│   ├── screens/               # Screen components
+│   │   ├── HomeScreen.tsx     # Main screen with image list
+│   │   └── ImageDetailsScreen.tsx # Image details screen
+│   ├── types/                 # TypeScript types
+│   │   └── navigation.ts      # Types for navigation
+│   └── utils/                 # Utilities and helper functions
+│       └── api.ts             # API for working with images
 ```
 
-## Навигация
+## Navigation
 
-Приложение использует React Navigation для навигации между экранами. Структура навигации:
+The application uses React Navigation for navigating between screens. Navigation structure:
 
 ### Stack Navigator
-- **Home** - главный экран со списком изображений
-- **ImageDetails** - экран деталей изображения
+- **Home** - main screen with image list
+- **ImageDetails** - image details screen
 
-### Типы навигации
+### Navigation Types
 ```typescript
 export type RootStackParamList = {
   Home: undefined;
@@ -315,146 +284,146 @@ export type RootStackParamList = {
 };
 ```
 
-## Компоненты
+## Components
 
 ### AnimeImage
-Компонент для отображения аниме изображения с возможностью нажатия для перехода к деталям.
+Component for displaying anime image with the ability to press for transition to details.
 
 **Props:**
 ```typescript
 interface AnimeImageProps {
-  image: ImageData; // Данные изображения
+  image: ImageData; // Image data
 }
 ```
 
-**Функциональность:**
-- Отображение изображения
-- Индикатор загрузки
-- Обработка ошибок
-- Навигация к экрану деталей
+**Functionality:**
+- Display image
+- Loading indicator
+- Error handling
+- Navigation to details screen
 
 ### HomeScreen
-Главный экран приложения, отображающий список аниме изображений.
+Main screen of the application, displaying a list of anime images.
 
-**Состояния:**
+**States:**
 ```typescript
 const [images, setImages] = React.useState<ImageData[]>([]);
 const [loading, setLoading] = React.useState(true);
 ```
 
-**Функциональность:**
-- Загрузка изображений при монтировании
-- Отображение списка изображений
-- Обработка ошибок загрузки
+**Functionality:**
+- Load images on mount
+- Display image list
+- Error handling on load
 
 ### ImageDetailsScreen
-Экран деталей изображения с дополнительной информацией и действиями.
+Screen with image details and additional information and actions.
 
 **Props:**
 ```typescript
 type Props = StackScreenProps<RootStackParamList, 'ImageDetails'>;
 ```
 
-**Функциональность:**
-- Отображение большого изображения
-- Информация о разрешении
-- Список тегов
-- Кнопки действий (избранное, скачать)
+**Functionality:**
+- Display large image
+- Information about resolution
+- Tag list
+- Action buttons (favorite, download)
 
 ## API
 
-## Типы данных
+## Data Types
 
 ### ImageData
 ```typescript
 export interface ImageData {
-  file_url: string;    // URL изображения
-  width?: number;      // Ширина изображения
-  height?: number;     // Высота изображения
-  tags?: string[];     // Теги изображения
+  file_url: string;    // Image URL
+  width?: number;      // Image width
+  height?: number;     // Image height
+  tags?: string[];     // Image tags
 }
 ```
 
-## Стили
+## Styling
 
-Приложение использует единую цветовую схему:
-- Основной фон: `#1a1a1a`
-- Вторичный фон: `#2a2a2a`
-- Акцентный цвет: `#FF3366`
-- Текст: `#FFFFFF`
-- Вторичный текст: `#888888`
+The application uses a single color scheme:
+- Main background: `#1a1a1a`
+- Secondary background: `#2a2a2a`
+- Accent color: `#FF3366`
+- Text: `#FFFFFF`
+- Secondary text: `#888888`
 
-## Разработка
+## Development
 
-### Установка зависимостей
+### Installing Dependencies
 ```bash
 npm install
 ```
 
-### Запуск в режиме разработки
+### Running in Development Mode
 ```bash
 npm start
 ```
 
-### Сборка для продакшена
+### Building for Production
 ```bash
 npm run build
 ```
 
-## Планы по развитию
+## Future Development Plans
 
-1. Добавление функциональности "Избранное"
-2. Реализация скачивания изображений
-3. Добавление поиска по тегам
-4. Кэширование изображений
-5. Добавление анимаций переходов 
+1. Adding "Favorite" Functionality
+2. Implementing Image Downloading
+3. Adding Tag Search
+4. Image Caching
+5. Adding Transition Animations 
 
-## Передача данных между экранами
+## Passing Data Between Screens
 
-### Передача данных из фида в экран деталей
+### Passing Data from Feed to Details Screen
 
-При переходе из фида в экран деталей изображения необходимо передавать следующие поля:
+When transitioning from feed to image details screen, the following fields need to be passed:
 
 ```typescript
-// Объект изображения (ImageData)
+// Image object (ImageData)
 {
-  _id: number;           // ID изображения
-  file_url: string;      // URL изображения
-  file_size: number;     // Размер файла в байтах
-  md5: string;          // MD5 хеш файла
-  tags: string[];       // Массив тегов
-  width: number;        // Ширина изображения
-  height: number;       // Высота изображения
-  source: string;       // Источник изображения
-  author: string;       // Автор изображения
-  has_children: boolean;// Флаг наличия дочерних изображений
+  _id: number;           // Image ID
+  file_url: string;      // Image URL
+  file_size: number;     // Image file size in bytes
+  md5: string;          // MD5 hash of the file
+  tags: string[];       // Array of tags
+  width: number;        // Image width
+  height: number;       // Image height
+  source: string;       // Image source
+  author: string;       // Image author
+  has_children: boolean;// Flag for presence of child images
 }
 ```
 
-#### Пример передачи данных:
+#### Example Passing Data:
 
 ```typescript
-// В компоненте AnimeImage
+// In AnimeImage component
 const handlePress = () => {
   router.push({
     pathname: `/image/${image._id}`,
     params: {
       ...image,
-      tags: JSON.stringify(image.tags),        // Преобразуем массив тегов в строку
-      _id: image._id.toString(),              // Преобразуем ID в строку
-      has_children: image.has_children.toString(), // Преобразуем boolean в строку
-      file_size: image.file_size.toString(),   // Преобразуем размер в строку
-      width: image.width.toString(),          // Преобразуем ширину в строку
-      height: image.height.toString()         // Преобразуем высоту в строку
+      tags: JSON.stringify(image.tags),        // Convert array to string
+      _id: image._id.toString(),              // Convert ID to string
+      has_children: image.has_children.toString(), // Convert boolean to string
+      file_size: image.file_size.toString(),   // Convert size to string
+      width: image.width.toString(),          // Convert width to string
+      height: image.height.toString()         // Convert height to string
     }
   });
 };
 ```
 
-#### Получение данных в экране деталей:
+#### Getting Data in Details Screen:
 
 ```typescript
-// В экране деталей ([id].tsx)
+// In details screen ([id].tsx)
 const params = useLocalSearchParams<{
   id: string;
   file_url: string;
@@ -469,7 +438,7 @@ const params = useLocalSearchParams<{
   _id: string;
 }>();
 
-// Создание объекта изображения
+// Create image object
 const image: ImageData = {
   _id: parseInt(params._id),
   file_url: params.file_url,
@@ -484,31 +453,31 @@ const image: ImageData = {
 };
 ```
 
-#### Важные замечания:
+#### Important Notes:
 
-1. Все числовые значения при передаче должны быть преобразованы в строки
-2. Массивы (например, теги) должны быть преобразованы в JSON-строку
-3. Булевы значения должны быть преобразованы в строки 'true' или 'false'
-4. При получении данных необходимо выполнить обратное преобразование:
-   - Строки в числа: `parseInt()`
-   - JSON-строки в массивы: `JSON.parse()`
-   - Строки в булевы значения: `=== 'true'` 
+1. All numeric values must be converted to strings when passing
+2. Arrays (e.g., tags) must be converted to JSON string
+3. Boolean values must be converted to strings 'true' or 'false'
+4. When getting data, reverse conversion must be performed:
+   - Strings to numbers: `parseInt()`
+   - JSON strings to arrays: `JSON.parse()`
+   - Strings to boolean values: `=== 'true'` 
 
-## Работа с избранным
+## Working with Favorites
 
-### Общее описание
-Функционал избранного позволяет пользователям сохранять понравившиеся изображения для быстрого доступа. Все данные хранятся локально на устройстве с использованием AsyncStorage.
+### General Description
+The favorite functionality allows users to save liked images for quick access. All data is stored locally on the device using AsyncStorage.
 
-### Реализация
+### Implementation
 
-#### Хранение данных
-- Избранные изображения хранятся в AsyncStorage в виде массива ID
-- Ключ для хранения: 'favorites'
-- Формат данных: JSON-строка с массивом чисел (ID изображений)
+#### Data Storage
+- Liked images are stored in AsyncStorage as an array of IDs
+- Storage key: 'favorites'
+- Data format: JSON string with array of numbers (IDs of images)
 
-#### Основные функции
+#### Main Functions
 
-##### Добавление в избранное
+##### Adding to Favorites
 ```typescript
 const addToFavorites = async (imageId: number) => {
   try {
@@ -525,7 +494,7 @@ const addToFavorites = async (imageId: number) => {
 };
 ```
 
-##### Удаление из избранного
+##### Removing from Favorites
 ```typescript
 const removeFromFavorites = async (imageId: number) => {
   try {
@@ -540,8 +509,53 @@ const removeFromFavorites = async (imageId: number) => {
 };
 ```
 
-### Экран избранного
+### Favorites Screen
 
+#### Data Loading
+1. When opening favorites screen:
+   - Load list of favorite image IDs from AsyncStorage
+   - For each ID, perform API request to get full image data
+   - Data is cached in component state
+
+2. Use `useFocusEffect` hook to update data on each screen focus
+
+#### Display
+- Images are displayed in grid (2 columns)
+- Each image has 1:1 aspect ratio
+- Pressing on image performs transition to details screen
+
+#### States
+- Loading: Display loading indicator
+- Empty list: Display message "No favorite images"
+- Error: Logged to console
+
+### Restrictions
+1. Local Storage:
+   - Data is stored only on device
+   - No synchronization between devices
+   - Data will be lost on app reinstallation
+
+2. API Dependency:
+   - If image is deleted from API, it will remain in favorites
+   - If trying to load deleted image, it will be skipped
+
+3. Performance:
+   - May experience delay on load with large number of favorite images
+   - All images are loaded at once
+
+### Recommendations for Use
+1. Regularly check for image presence in API
+2. Limit favorite images
+3. Implement mechanism to clean non-existing images
+4. Add progress indicator when loading large number of images 
+
+## Image Loading Optimization
+
+### Problem
+When working with images in the application, the following problems occurred:
+- Slow image loading in feed
+- Repeat loading on transition to detailed view
+- Delays on full-screen mode opening
 #### Загрузка данных
 1. При открытии экрана избранного:
    - Загружается список ID избранных изображений из AsyncStorage
