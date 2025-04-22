@@ -37,7 +37,6 @@ export default function ImageDetailsScreen() {
     has_children: string;
     _id: string;
   }>();
-  const [imageKey, setImageKey] = useState(0);
 
   // Создаем объект с данными изображения
   const image: Partial<ImageData> = {
@@ -58,7 +57,7 @@ export default function ImageDetailsScreen() {
     ? image.file_url 
     : `https://${image.file_url}`;
 
-  const { isLoading: imageLoading, fullUri, reloadImage } = useImageLoader(imageUrl);
+  const { isLoading: imageLoading, fullUri } = useImageLoader(imageUrl);
 
   useEffect(() => {
     checkFavoriteStatus();
@@ -158,45 +157,24 @@ export default function ImageDetailsScreen() {
   const handleShare = async () => {
     try {
       setIsLoading(true);
-      
       // Создаем имя файла с ID
       const fileName = `wp_${image._id}.jpg`;
       const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
       
-      // Убеждаемся, что используем правильный URL с http/https
-      let sourceUri = imageUrl;
-      if (params.cached_uri?.startsWith('file://')) {
-        // Если у нас есть кешированный файл, копируем его
-        await FileSystem.copyAsync({
-          from: params.cached_uri,
-          to: fileUri
-        });
-      } else if (fullUri?.startsWith('file://')) {
-        // Если есть полный URI в кеше, копируем его
-        await FileSystem.copyAsync({
-          from: fullUri,
-          to: fileUri
-        });
-      } else {
-        // Иначе скачиваем с сервера
-        const downloadResult = await FileSystem.downloadAsync(
-          sourceUri,
-          fileUri
-        );
-
-        if (downloadResult.status !== 200) {
-          throw new Error('Failed to download image for sharing');
-        }
-      }
-
-      // Делимся файлом
-      await Sharing.shareAsync(fileUri, {
-        mimeType: 'image/jpeg',
-        dialogTitle: 'Share Image'
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const base64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
       });
 
-      // Очищаем временный файл
-      await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      await FileSystem.writeAsStringAsync(fileUri, base64 as string, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      await Sharing.shareAsync(fileUri);
+      await FileSystem.deleteAsync(fileUri);
     } catch (error) {
       console.error('Error sharing image:', error);
       Alert.alert('Error', 'Failed to share image');
@@ -236,41 +214,6 @@ export default function ImageDetailsScreen() {
     setIsImageViewVisible(true);
   };
 
-  const handleRefresh = async () => {
-    try {
-      // Очищаем кеш для этого изображения
-      if (fullUri) {
-        await FileSystem.deleteAsync(fullUri, { idempotent: true });
-      }
-      if (params.cached_uri) {
-        await FileSystem.deleteAsync(params.cached_uri, { idempotent: true });
-      }
-      
-      // Обновляем ключ для принудительной перерисовки
-      setImageKey(prev => prev + 1);
-      
-      // Перезагружаем изображение
-      if (reloadImage) {
-        await reloadImage();
-      }
-
-      Toast.show({
-        type: 'success',
-        text1: 'Refreshing image...',
-        position: 'bottom',
-        visibilityTime: 2000,
-      });
-    } catch (error) {
-      console.error('Error refreshing image:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Failed to refresh image',
-        position: 'bottom',
-        visibilityTime: 2000,
-      });
-    }
-  };
-
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={[styles.header, { marginTop: insets.top }]}>
@@ -286,13 +229,6 @@ export default function ImageDetailsScreen() {
             isFavorite={isFavorite}
             onToggle={handleFavoriteToggle}
           />
-          <TouchableOpacity 
-            style={styles.actionButton} 
-            onPress={handleRefresh}
-            disabled={isLoading}
-          >
-            <Ionicons name="refresh" size={24} color="#FFF" />
-          </TouchableOpacity>
           <TouchableOpacity 
             style={styles.actionButton} 
             onPress={handleSave}
@@ -322,7 +258,7 @@ export default function ImageDetailsScreen() {
             transition={300}
             cachePolicy="memory-disk"
             placeholder={require('../../assets/placeholder/image-placeholder.png')}
-            recyclingKey={`${image._id?.toString()}-${imageKey}`}
+            recyclingKey={image._id?.toString()}
           />
           {imageLoading && (
             <View style={styles.loadingOverlay}>

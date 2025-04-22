@@ -6,9 +6,9 @@ import { Toast } from 'react-native-toast-message/lib/src/Toast';
 export default function RootLayout() {
   return (
     <>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(tabs)" />
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="image/[id]" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="light" />
       <Toast />

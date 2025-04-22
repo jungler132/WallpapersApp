@@ -363,20 +363,6 @@ type Props = StackScreenProps<RootStackParamList, 'ImageDetails'>;
 
 ## API
 
-### getRandomImage
-Получение случайного изображения.
-
-```typescript
-export const getRandomImage = async (): Promise<ImageData>
-```
-
-### getRandomImages
-Получение нескольких случайных изображений.
-
-```typescript
-export const getRandomImages = async (count: number): Promise<ImageData[]>
-```
-
 ## Типы данных
 
 ### ImageData
@@ -694,3 +680,108 @@ export const useImageLoader = (originalUrl: string) => {
 - При первой загрузке изображения может быть небольшая задержка
 - Кеш сохраняется в локальном хранилище устройства
 - Для очистки кеша можно использовать функцию `clearImageCache` 
+
+## API Documentation
+
+### Base URL
+```
+https://pic.re
+```
+
+### Endpoints
+
+#### 1. Random Image File [GET]
+- **Endpoint**: `/image`
+- **Method**: GET
+- **Response**: Image file
+- **Headers**:
+  - `image_id`: Unique image identifier
+  - `image_source`: Original source URL
+  - `image_tags`: Comma-separated list of tags
+
+#### 2. Random Image File (CDN) [GET]
+- **Endpoint**: `/images`
+- **Method**: GET
+- **Response**: Image file (redirects to CDN)
+- **Note**: Recommended for production use
+
+#### 3. Random Image Metadata [POST/GET]
+- **Endpoint**: `/image` (POST) or `/images.json` (GET)
+- **Method**: POST/GET
+- **Response**: JSON object containing:
+  ```json
+  {
+    "file_url": "string",
+    "md5": "string",
+    "tags": ["string"],
+    "width": number,
+    "height": number,
+    "source": "string",
+    "author": "string",
+    "has_children": boolean,
+    "_id": number
+  }
+  ```
+
+#### 4. Tags List [GET]
+- **Endpoint**: `/tags`
+- **Method**: GET
+- **Response**: JSON array of tags with counts
+  ```json
+  [
+    {
+      "name": "string",
+      "count": number
+    }
+  ]
+  ```
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| nin | string | - | Excluded tags (comma-separated) |
+| in | string | - | Included tags (comma-separated) |
+| id | number | - | Specific image ID |
+| compress | boolean | true | Use WebP format |
+| min_size | number | - | Minimum image size |
+| max_size | number | 6144 | Maximum image size (6144x6144) |
+
+### Common Tags
+- long_hair
+- original
+- blush
+- brown_hair
+- animal_ears
+- thighhighs
+- short_hair
+- twintails
+- blonde_hair
+- navel
+- purple_eyes
+- panties
+- red_eyes
+- cleavage
+- tail
+
+### CORS Support
+API supports Cross-Origin Resource Sharing (CORS) for web applications.
+
+### Example Usage
+```typescript
+// Fetch random image
+const response = await axios.get('https://pic.re/image', {
+  params: {
+    in: 'girl,short_hair',
+    compress: true
+  }
+});
+
+// Get image metadata
+const metadata = await axios.get('https://pic.re/images.json', {
+  params: {
+    in: 'original',
+    max_size: 4096
+  }
+});
+``` 

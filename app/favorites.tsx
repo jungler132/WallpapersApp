@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { View, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ImageData } from '../utils/api';
+import { ImageData, getImageById } from '../utils/api';
 
 export default function FavoritesScreen() {
   const [favorites, setFavorites] = useState<number[]>([]);
@@ -10,42 +11,23 @@ export default function FavoritesScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useFocusEffect(
-    React.useCallback(() => {
-      loadFavorites();
-    }, [])
-  );
+  useEffect(() => {
+    loadFavorites();
+  }, []);
 
   const loadFavorites = async () => {
     try {
       setLoading(true);
       const favoritesData = await AsyncStorage.getItem('favorites');
-      console.log('Loaded favorites from storage:', favoritesData);
-      
       const favoritesArray = favoritesData ? JSON.parse(favoritesData) : [];
       setFavorites(favoritesArray);
-      console.log('Parsed favorites array:', favoritesArray);
 
       if (favoritesArray.length > 0) {
         const imagesData = await Promise.all(
           favoritesArray.map(async (id: number) => {
             try {
-              const response = await fetch(`https://danbooru.donmai.us/posts/${id}.json`);
-              const data = await response.json();
-              console.log('Loaded image data for ID:', id, data);
-              
-              return {
-                _id: data.id,
-                file_url: data.file_url,
-                file_size: data.file_size,
-                tags: data.tag_string.split(' '),
-                md5: data.md5,
-                width: data.image_width,
-                height: data.image_height,
-                source: data.source,
-                author: data.tag_string_artist,
-                has_children: data.has_children
-              } as ImageData;
+              const image = await getImageById(id);
+              return image;
             } catch (error) {
               console.error('Error loading image data for ID:', id, error);
               return null;
@@ -54,7 +36,6 @@ export default function FavoritesScreen() {
         );
 
         const validImages = imagesData.filter((img): img is ImageData => img !== null);
-        console.log('Valid images loaded:', validImages);
         setImages(validImages);
       } else {
         setImages([]);
@@ -74,7 +55,6 @@ export default function FavoritesScreen() {
         tags: JSON.stringify(image.tags),
         id: image._id.toString(),
         has_children: image.has_children.toString(),
-        file_size: image.file_size.toString(),
         width: image.width.toString(),
         height: image.height.toString()
       }
@@ -103,6 +83,10 @@ export default function FavoritesScreen() {
         data={images}
         numColumns={2}
         keyExtractor={(item) => item._id.toString()}
+        initialNumToRender={4}
+        maxToRenderPerBatch={4}
+        windowSize={5}
+        removeClippedSubviews={true}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.imageContainer}
@@ -111,7 +95,11 @@ export default function FavoritesScreen() {
             <Image
               source={{ uri: item.file_url }}
               style={styles.image}
-              resizeMode="cover"
+              contentFit="cover"
+              transition={1000}
+              cachePolicy="memory-disk"
+              placeholder={require('../assets/placeholder/image-placeholder.png')}
+              recyclingKey={item._id.toString()}
             />
           </TouchableOpacity>
         )}
@@ -147,8 +135,7 @@ const styles = StyleSheet.create({
     margin: 4,
   },
   image: {
-    width: '100%',
-    height: '100%',
+    flex: 1,
     borderRadius: 8,
   },
 }); 
