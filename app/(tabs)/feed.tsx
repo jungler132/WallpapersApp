@@ -18,14 +18,14 @@ export default function FeedScreen() {
 
   // Calculate the number of images to load based on the number of columns
   const getLoadCount = () => {
-    // Load 2 rows for each number of columns
-    return settings.gridColumns * 2;
+    // Always load 20 images
+    return 20;
   };
 
   const loadImages = async (isInitial: boolean = true) => {
     try {
       const loadCount = getLoadCount();
-      console.log(`Loading ${loadCount} images for ${settings.gridColumns} columns`);
+      console.log(`Loading ${loadCount} images`);
       
       const newImages = await getRandomImages(loadCount);
       
