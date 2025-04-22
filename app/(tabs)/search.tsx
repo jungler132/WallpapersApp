@@ -5,16 +5,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { getTags, getRandomImages, ImageData, TagData } from '../../utils/api';
 import { router } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 // Увеличиваем общий отступ до 48px (16px слева + 16px между + 16px справа)
 const ITEM_WIDTH = (width - 48) / 2;
+const ITEMS_PER_PAGE = 20;
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [images, setImages] = useState<ImageData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Загрузка тегов
   const { data: tags, isLoading: isLoadingTags } = useQuery({
@@ -22,54 +26,83 @@ export default function SearchScreen() {
     queryFn: getTags,
   });
 
+  const loadImages = async (loadMore = false) => {
+    if (loadMore) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
+
+    try {
+      const tagString = selectedTags.join(',');
+      const results = await getRandomImages(ITEMS_PER_PAGE, { 
+        in: tagString,
+        compress: true,
+        min_size: 100000
+      });
+      
+      if (!results || results.length === 0) {
+        if (!loadMore) {
+          setImages([]);
+        }
+        return;
+      }
+      
+      const uniqueResults = results.filter((image) => {
+        return !images.some(existingImage => 
+          existingImage._id === image._id || existingImage.md5 === image.md5
+        );
+      });
+
+      setImages(prevImages => loadMore ? [...prevImages, ...uniqueResults] : uniqueResults);
+    } catch (error: any) {
+      console.error('Search error:', error);
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+      setHasSearched(true);
+    }
+  };
+
   // Автоматический поиск при изменении выбранных тегов
   useEffect(() => {
-    const searchImages = async () => {
-      if (selectedTags.length > 0) {
-        setIsLoading(true);
-        try {
-          console.log('Searching with tags:', selectedTags);
-          // Теги должны быть разделены запятыми
-          const tagString = selectedTags.join(',');
-          console.log('Tag string:', tagString);
-          
-          // Используем правильные параметры согласно документации API
-          const results = await getRandomImages(20, { 
-            in: tagString,
-            compress: true,
-            min_size: 100000 // Минимальный размер файла 100KB
-          });
-          
-          console.log('Raw API response:', results);
-          
-          if (!results || results.length === 0) {
-            console.log('No results returned from API');
-            setImages([]);
-            return;
-          }
-          
-          // Удаляем дубликаты изображений
-          const uniqueResults = results.filter((image, index, self) =>
-            index === self.findIndex((t) => t._id === image._id && t.md5 === image.md5)
-          );
-          
-          console.log('Unique results:', uniqueResults);
-          setImages(uniqueResults);
-        } catch (error: any) {
-          console.error('Search error:', error);
-          if (error.response) {
-            console.error('API response:', error.response.data);
-          }
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        setImages([]);
-      }
-    };
-
-    searchImages();
+    if (selectedTags.length > 0) {
+      loadImages();
+    } else {
+      setImages([]);
+      setHasSearched(false);
+    }
   }, [selectedTags]);
+
+  const handleLoadMore = () => {
+    if (!isLoadingMore && selectedTags.length > 0) {
+      loadImages(true);
+    }
+  };
+
+  const EmptyState = () => {
+    if (!hasSearched) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <MaterialCommunityIcons name="tag-multiple" size={64} color="#FF3366" />
+          <Text style={styles.emptyStateText}>Select Tags to Search</Text>
+          <Text style={styles.emptyStateSubtext}>Combine multiple tags for better results</Text>
+        </View>
+      );
+    }
+
+    if (hasSearched && images.length === 0) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <MaterialCommunityIcons name="image-search" size={64} color="#FF3366" />
+          <Text style={styles.emptyStateText}>No Images Found</Text>
+          <Text style={styles.emptyStateSubtext}>Try different tags or combinations</Text>
+        </View>
+      );
+    }
+
+    return null;
+  };
 
   const handleTagPress = (tag: string) => {
     if (selectedTags.includes(tag)) {
@@ -140,10 +173,19 @@ export default function SearchScreen() {
     );
   };
 
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator color="#FF3366" />
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.tagsContainer}>
-        <Text style={styles.sectionTitle}>Tags</Text>
+        <Text style={styles.sectionTitle}>Popular Tags</Text>
         {isLoadingTags ? (
           <ActivityIndicator color="#FF3366" />
         ) : (
@@ -159,7 +201,7 @@ export default function SearchScreen() {
       </View>
 
       <View style={styles.imagesContainer}>
-        <Text style={styles.sectionTitle}>Results</Text>
+        <Text style={styles.sectionTitle}>Search Results</Text>
         {isLoading ? (
           <ActivityIndicator color="#FF3366" style={styles.loader} />
         ) : (
@@ -169,7 +211,14 @@ export default function SearchScreen() {
             keyExtractor={(item) => `${item._id}-${item.md5}`}
             numColumns={2}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.imagesList}
+            contentContainerStyle={[
+              styles.imagesList,
+              images.length === 0 && styles.emptyList
+            ]}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            ListEmptyComponent={EmptyState}
+            ListFooterComponent={renderFooter}
           />
         )}
       </View>
@@ -236,5 +285,31 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 20,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    minHeight: 300,
+  },
+  emptyStateText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptyStateSubtext: {
+    color: '#999999',
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  footerLoader: {
+    paddingVertical: 16,
+  },
+  emptyList: {
+    flexGrow: 1,
   },
 }); 
