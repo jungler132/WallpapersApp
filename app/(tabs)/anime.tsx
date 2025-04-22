@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, TextInput } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { useTopAnime } from '../hooks/useAnime';
+import { useTopAnime, useAnimeSearch, Anime } from '../hooks/useAnime';
 import { Ionicons } from '@expo/vector-icons';
 
 const COLORS = {
@@ -13,9 +13,21 @@ const COLORS = {
 };
 
 export default function AnimeScreen() {
-  const { data: animeList, isLoading, isError, error } = useTopAnime();
+  const [searchQuery, setSearchQuery] = useState('');
+  const { data: topAnime, isLoading: isLoadingTop } = useTopAnime();
+  const { 
+    data: searchData, 
+    isLoading: isLoadingSearch, 
+    isError, 
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useAnimeSearch(searchQuery);
 
-  const renderAnimeItem = ({ item }) => (
+  const animeList = searchQuery ? searchData?.pages.flatMap(page => page.data) : topAnime;
+
+  const renderAnimeItem = ({ item }: { item: Anime }) => (
     <TouchableOpacity
       style={styles.animeItem}
       onPress={() => {
@@ -40,7 +52,24 @@ export default function AnimeScreen() {
     </TouchableOpacity>
   );
 
-  if (isLoading) {
+  const renderFooter = () => {
+    if (!isFetchingNextPage) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={COLORS.accent} />
+      </View>
+    );
+  };
+
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
+  const isLoading = isLoadingTop || isLoadingSearch;
+
+  if (isLoadingTop && !topAnime) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.accent} />
@@ -66,11 +95,24 @@ export default function AnimeScreen() {
         headerTintColor: COLORS.text,
       }} />
       <View style={styles.container}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search anime..."
+            placeholderTextColor={COLORS.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
         <FlatList
           data={animeList}
           renderItem={renderAnimeItem}
-          keyExtractor={(item) => item.mal_id.toString()}
+          keyExtractor={(item) => `${item.mal_id}-${item.title}`}
           contentContainerStyle={styles.listContainer}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
         />
       </View>
     </>
@@ -98,6 +140,34 @@ const styles = StyleSheet.create({
   errorText: {
     color: COLORS.accent,
     textAlign: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.secondary,
+    margin: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    color: COLORS.text,
+    fontSize: 16,
   },
   listContainer: {
     padding: 16,
@@ -147,5 +217,9 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: 14,
     color: COLORS.text,
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
   },
 }); 

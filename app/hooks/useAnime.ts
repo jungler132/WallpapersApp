@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
 const API_BASE_URL = 'https://api.jikan.moe/v4';
@@ -35,6 +35,15 @@ export interface AnimeDetails {
   }>;
 }
 
+export interface AnimeSearchResponse {
+  data: Anime[];
+  pagination: {
+    last_visible_page: number;
+    has_next_page: boolean;
+    current_page: number;
+  };
+}
+
 // API функции
 const fetchTopAnime = async (): Promise<Anime[]> => {
   const { data } = await axios.get(`${API_BASE_URL}/top/anime`);
@@ -44,6 +53,18 @@ const fetchTopAnime = async (): Promise<Anime[]> => {
 const fetchAnimeDetails = async (id: string | number): Promise<AnimeDetails> => {
   const { data } = await axios.get(`${API_BASE_URL}/anime/${id}/full`);
   return data.data;
+};
+
+const fetchAnimeSearch = async ({ pageParam = 1, queryKey }: any): Promise<AnimeSearchResponse> => {
+  const [_, searchQuery] = queryKey;
+  const { data } = await axios.get(`${API_BASE_URL}/anime`, {
+    params: {
+      q: searchQuery,
+      page: pageParam,
+      limit: 20,
+    },
+  });
+  return data;
 };
 
 // React Query хуки
@@ -63,5 +84,22 @@ export function useAnimeDetails(id: string | number) {
     staleTime: 1000 * 60 * 5, // 5 минут
     gcTime: 1000 * 60 * 30, // 30 минут
     enabled: !!id,
+  });
+}
+
+export function useAnimeSearch(searchQuery: string) {
+  return useInfiniteQuery({
+    queryKey: ['animeSearch', searchQuery],
+    queryFn: fetchAnimeSearch,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination.has_next_page) {
+        return lastPage.pagination.current_page + 1;
+      }
+      return undefined;
+    },
+    enabled: !!searchQuery,
+    staleTime: 1000 * 60 * 5, // 5 минут
+    gcTime: 1000 * 60 * 30, // 30 минут
   });
 } 
