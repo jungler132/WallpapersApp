@@ -6,11 +6,15 @@ import { useQuery } from '@tanstack/react-query';
 import { getTags, getRandomImages, ImageData, TagData } from '../../utils/api';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 // Увеличиваем общий отступ до 48px (16px слева + 16px между + 16px справа)
 const ITEM_WIDTH = (width - 48) / 2;
 const ITEMS_PER_PAGE = 20;
+const TAGS_CACHE_KEY = 'cached_tags';
+const TAGS_CACHE_TIMESTAMP_KEY = 'cached_tags_timestamp';
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 часа
 
 export default function SearchScreen() {
   console.log('🚀 [Search] Component mounted');
@@ -23,6 +27,8 @@ export default function SearchScreen() {
   const [tagSearch, setTagSearch] = useState('');
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const isMounted = useRef(true);
+  const flatListRef = useRef<FlatList>(null);
+  const lastScrollPosition = useRef(0);
 
   useEffect(() => {
     isMounted.current = true;
@@ -31,10 +37,47 @@ export default function SearchScreen() {
     };
   }, []);
 
-  // Загрузка тегов
-  const { data: tags, isLoading: isLoadingTags } = useQuery({
+  // Загрузка тегов с кэшированием
+  const { data: tags, isLoading: isLoadingTags } = useQuery<TagData[]>({
     queryKey: ['tags'],
-    queryFn: getTags,
+    queryFn: async () => {
+      try {
+        // Проверяем кэш
+        const cachedTags = await AsyncStorage.getItem(TAGS_CACHE_KEY);
+        const cachedTimestamp = await AsyncStorage.getItem(TAGS_CACHE_TIMESTAMP_KEY);
+        const now = Date.now();
+
+        if (cachedTags && cachedTimestamp) {
+          const timestamp = parseInt(cachedTimestamp);
+          // Если кэш не устарел, используем его
+          if (now - timestamp < CACHE_DURATION) {
+            console.log('📦 [Search] Using cached tags');
+            return JSON.parse(cachedTags) as TagData[];
+          }
+        }
+
+        // Если кэша нет или он устарел, загружаем новые теги
+        console.log('🌐 [Search] Fetching fresh tags');
+        const freshTags = await getTags();
+        
+        // Сохраняем в кэш
+        await AsyncStorage.setItem(TAGS_CACHE_KEY, JSON.stringify(freshTags));
+        await AsyncStorage.setItem(TAGS_CACHE_TIMESTAMP_KEY, now.toString());
+        
+        return freshTags;
+      } catch (error) {
+        console.error('❌ [Search] Error loading tags:', error);
+        // В случае ошибки пытаемся использовать кэш, даже если он устарел
+        const cachedTags = await AsyncStorage.getItem(TAGS_CACHE_KEY);
+        if (cachedTags) {
+          console.log('⚠️ [Search] Using stale cache due to error');
+          return JSON.parse(cachedTags) as TagData[];
+        }
+        throw error;
+      }
+    },
+    staleTime: CACHE_DURATION,
+    gcTime: CACHE_DURATION * 2,
   });
 
   // Фильтрация тегов
@@ -65,7 +108,24 @@ export default function SearchScreen() {
       .slice(0, 10);
   }, [tags]);
 
-  // При запросе новых изображений используем предзагруженные
+  const handleScroll = useCallback((event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const paddingToBottom = 20;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+    
+    // Если пользователь прокрутил достаточно далеко и мы не загружаем уже
+    if (isCloseToBottom && !isLoadingMore && selectedTags.length > 0) {
+      console.log('📥 [Search] Preloading next page...');
+      loadImages(true).finally(() => {
+        if (isMounted.current) {
+          setIsLoadingMore(false);
+        }
+      });
+    }
+    
+    lastScrollPosition.current = contentOffset.y;
+  }, [isLoadingMore, selectedTags]);
+
   const loadImages = async (isLoadMore: boolean = false) => {
     if (!isMounted.current) return;
 
@@ -75,8 +135,8 @@ export default function SearchScreen() {
     if (!isLoadMore) {
       console.log('🧹 [Search] Starting new search - clearing all images');
       setIsLoading(true);
-      setImages([]); // Очищаем все изображения при новом поиске
-      setHasSearched(false); // Сбрасываем флаг поиска
+      setImages([]);
+      setHasSearched(false);
     } else {
       setIsLoadingMore(true);
     }
@@ -87,7 +147,6 @@ export default function SearchScreen() {
       
       if (!isMounted.current) return;
       
-      // Фильтруем изображения, чтобы убедиться, что они содержат выбранные теги
       const filteredImages = newImages.filter(image => 
         selectedTags.every(tag => image.tags.includes(tag))
       );
@@ -97,7 +156,11 @@ export default function SearchScreen() {
       
       if (isLoadMore) {
         console.log('📥 [Search] Appending new images to existing ones');
-        setImages(prevImages => [...prevImages, ...filteredImages]);
+        // Проверяем на дубликаты перед добавлением
+        const uniqueImages = filteredImages.filter(newImage => 
+          !images.some(existingImage => existingImage._id === newImage._id)
+        );
+        setImages(prevImages => [...prevImages, ...uniqueImages]);
       } else {
         console.log('📥 [Search] Setting new images');
         setImages(filteredImages);
@@ -365,19 +428,21 @@ export default function SearchScreen() {
           <ActivityIndicator color="#FF3366" style={styles.loader} />
         ) : (
           <FlatList
+            ref={flatListRef}
             data={images}
             renderItem={renderImage}
-            keyExtractor={(item) => `${item._id}-${item.md5}`}
+            keyExtractor={(item) => item._id.toString()}
             numColumns={2}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[
-              styles.imagesList,
-              images.length === 0 && styles.emptyList
-            ]}
+            contentContainerStyle={styles.imageList}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.5}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
             ListEmptyComponent={EmptyState}
             ListFooterComponent={renderFooter}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
           />
         )}
       </View>
@@ -450,7 +515,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
-  imagesList: {
+  imageList: {
     paddingBottom: 16,
     gap: 16,
   },
