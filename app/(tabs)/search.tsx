@@ -70,7 +70,7 @@ export default function SearchScreen() {
     if (!isMounted.current) return;
 
     console.log('🔄 [Search] Starting loadImages, isLoadMore:', isLoadMore);
-    console.log('🏷️ [Search] Current selected tags:', selectedTags);
+    console.log('🏷️ [Search] Current selected tags in loadImages:', selectedTags);
 
     if (!isLoadMore) {
       console.log('🧹 [Search] Starting new search - clearing all images');
@@ -87,15 +87,20 @@ export default function SearchScreen() {
       
       if (!isMounted.current) return;
       
-      console.log('✅ [Search] Received new images:', newImages.length);
+      // Фильтруем изображения, чтобы убедиться, что они содержат выбранные теги
+      const filteredImages = newImages.filter(image => 
+        selectedTags.every(tag => image.tags.includes(tag))
+      );
+      
+      console.log('✅ [Search] Received new images:', filteredImages.length);
       setHasSearched(true);
       
       if (isLoadMore) {
         console.log('📥 [Search] Appending new images to existing ones');
-        setImages(prevImages => [...prevImages, ...newImages]);
+        setImages(prevImages => [...prevImages, ...filteredImages]);
       } else {
         console.log('📥 [Search] Setting new images');
-        setImages(newImages);
+        setImages(filteredImages);
       }
     } catch (error) {
       console.error('❌ [Search] Error loading images:', error);
@@ -115,6 +120,8 @@ export default function SearchScreen() {
     if (!isMounted.current) return;
 
     console.log('⏱️ [Search] Starting debounced load, loadMore:', loadMore);
+    console.log('📝 [Search] Current selected tags in debounce:', selectedTags);
+    
     if (searchTimeout) {
       console.log('🧹 [Search] Clearing previous timeout');
       clearTimeout(searchTimeout);
@@ -123,12 +130,13 @@ export default function SearchScreen() {
     const timeout = setTimeout(() => {
       if (isMounted.current) {
         console.log('⏰ [Search] Timeout triggered, loading images');
+        console.log('📝 [Search] Current selected tags in timeout:', selectedTags);
         loadImages(loadMore);
       }
     }, 500);
 
     setSearchTimeout(timeout);
-  }, [searchTimeout]);
+  }, [searchTimeout, selectedTags]);
 
   // Автоматический поиск при изменении выбранных тегов
   useEffect(() => {
@@ -186,16 +194,23 @@ export default function SearchScreen() {
 
   const handleTagPress = (tag: string) => {
     console.log('👆 [Search] Tag pressed:', tag);
+    console.log('📝 [Search] Current selected tags before change:', selectedTags);
+    
     if (selectedTags.includes(tag)) {
       console.log('➖ [Search] Removing tag:', tag);
-      setSelectedTags(selectedTags.filter(t => t !== tag));
+      setSelectedTags(prevTags => {
+        const newTags = prevTags.filter(t => t !== tag);
+        console.log('📝 [Search] New tags after removal:', newTags);
+        return newTags;
+      });
     } else {
       console.log('➕ [Search] Adding tag:', tag);
-      setSelectedTags([...selectedTags, tag]);
+      setSelectedTags(prevTags => {
+        const newTags = [...prevTags, tag];
+        console.log('📝 [Search] New tags after addition:', newTags);
+        return newTags;
+      });
     }
-    // Очищаем изображения при изменении тегов
-    setImages([]);
-    setHasSearched(false);
   };
 
   const handleImagePress = (image: ImageData) => {

@@ -53,6 +53,7 @@ export const getRandomImage = async (params?: {
 
 export const getRandomImages = async (tags?: string[]): Promise<ImageData[]> => {
   try {
+    console.log('🌐 [API] Fetching images with tags:', tags);
     // Создаем массив промисов для параллельной загрузки изображений
     const promises = Array(10).fill(null).map(async () => {
       const params: any = {
@@ -60,7 +61,9 @@ export const getRandomImages = async (tags?: string[]): Promise<ImageData[]> => 
       };
       
       if (tags && tags.length > 0) {
+        // Используем параметр in для включения тегов
         params.in = tags.join(',');
+        console.log('🌐 [API] Request params:', params);
       }
 
       const response = await axios.get(`${API_BASE_URL}/image.json`, {
@@ -71,14 +74,40 @@ export const getRandomImages = async (tags?: string[]): Promise<ImageData[]> => 
         }
       });
 
+      console.log('🌐 [API] Received response:', {
+        hasData: !!response.data,
+        tags: response.data?.tags,
+        id: response.data?._id
+      });
+
+      // Фильтруем результаты на клиенте, чтобы убедиться, что изображение содержит все выбранные теги
+      if (tags && tags.length > 0 && response.data) {
+        const imageTags = response.data.tags || [];
+        const hasAllTags = tags.every(tag => imageTags.includes(tag));
+        console.log('🔍 [API] Image tag check:', {
+          requiredTags: tags,
+          imageTags,
+          hasAllTags
+        });
+        if (!hasAllTags) {
+          // Если изображение не содержит все теги, возвращаем null
+          return null;
+        }
+      }
+
       return response.data;
     });
 
-    // Ждем выполнения всех запросов
+    // Ждем выполнения всех запросов и фильтруем null результаты
     const results = await Promise.all(promises);
-    return results;
+    const filteredResults = results.filter(result => result !== null);
+    console.log('📊 [API] Final results:', {
+      total: results.length,
+      filtered: filteredResults.length
+    });
+    return filteredResults;
   } catch (error) {
-    console.error('Error fetching random images:', error);
+    console.error('❌ [API] Error fetching random images:', error);
     throw error;
   }
 };
