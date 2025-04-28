@@ -63,19 +63,15 @@ export const getRandomImages = async (tags?: string[]): Promise<ImageData[]> => 
         params.in = tags.join(',');
       }
 
-      const response = await fetch(`${API_BASE_URL}/image.json`, {
+      const response = await axios.get(`${API_BASE_URL}/image.json`, {
+        params,
         headers: {
           'Accept': 'application/json',
           'User-Agent': 'AnimeWallpapers/1.0'
-        },
-        params
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
-      }
-
-      return response.json();
+      return response.data;
     });
 
     // Ждем выполнения всех запросов
