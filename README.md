@@ -1,3 +1,7 @@
+# OtakuWalls
+
+Аниме-обои для настоящих отаку! Быстрый поиск, коллекции, любимые персонажи и стильный дизайн.
+
 # Anime Wallpapers - Development Guide
 
 ## Used Modules and Their Purpose

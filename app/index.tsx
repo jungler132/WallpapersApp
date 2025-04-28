@@ -1,17 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, Animated, Image } from 'react-native';
 import { router } from 'expo-router';
-import Svg, { Circle, Path } from 'react-native-svg';
-
-const Logo = () => (
-  <Svg width="200" height="200" viewBox="0 0 200 200">
-    <Circle cx="100" cy="100" r="90" fill="#FF3366"/>
-    <Path d="M70 150 L100 50 L130 150" stroke="white" strokeWidth="12" strokeLinecap="round"/>
-    <Path d="M85 120 L115 120" stroke="white" strokeWidth="12" strokeLinecap="round"/>
-    <Circle cx="100" cy="100" r="30" stroke="white" strokeWidth="4" fill="none"/>
-    <Circle cx="100" cy="100" r="15" fill="white"/>
-  </Svg>
-);
 
 export default function SplashScreen() {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -51,10 +40,10 @@ export default function SplashScreen() {
             transform: [{ scale: scaleAnim }],
           },
         ]}>
-        <Logo />
-        <Animated.Text style={[styles.title, { opacity: fadeAnim }]}>
-          Anime Wallpapers
-        </Animated.Text>
+        <Image
+          source={require('../assets/images/otakuwalls_logo.png')}
+          style={{ width: 180, height: 180, resizeMode: 'contain' }}
+        />
       </Animated.View>
     </View>
   );
