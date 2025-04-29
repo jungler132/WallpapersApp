@@ -253,9 +253,7 @@ const styles = StyleSheet.create({
  * Gets a random image from API
  * @returns {Promise<ImageData>} Image data
  */
-```
-
-## Structure of the Project
+```## Structure of the Project
 
 ```
 AnimeWallpapers/
@@ -456,7 +454,6 @@ const image: ImageData = {
   has_children: params.has_children === 'true'
 };
 ```
-
 #### Important Notes:
 
 1. All numeric values must be converted to strings when passing
@@ -497,7 +494,6 @@ const addToFavorites = async (imageId: number) => {
   }
 };
 ```
-
 ##### Removing from Favorites
 ```typescript
 const removeFromFavorites = async (imageId: number) => {
@@ -955,3 +951,110 @@ const searchImages = async (tags: string[]) => {
    - Validate tags before search
    - Remove invalid characters
    - Prevent empty tag searches 
+
+### AdMob Working Principles
+
+#### Ad Loading Process
+1. **Initialization**
+   - SDK initialization on app start
+   - Configuration loading
+   - Consent management
+   - Network connectivity check
+
+2. **Ad Request Flow**
+   - Request creation with targeting parameters
+   - Network mediation
+   - Auction process
+   - Response handling
+
+3. **Ad Display Logic**
+   - View hierarchy integration
+   - Lifecycle management
+   - Impression tracking
+   - Click handling
+
+#### Technical Implementation
+```typescript
+// AdMob initialization
+import { MobileAds } from 'react-native-google-mobile-ads';
+
+const initializeAdMob = async () => {
+  await MobileAds().initialize();
+};
+
+// Banner ad implementation
+const BannerAd = () => {
+  return (
+    <BannerAd
+      unitId={AD_UNIT_ID}
+      size={BannerAdSize.BANNER}
+      requestOptions={{
+        requestNonPersonalizedAdsOnly: true,
+      }}
+      onAdLoaded={() => console.log('Ad loaded')}
+      onAdFailedToLoad={(error) => console.error('Ad failed to load:', error)}
+    />
+  );
+};
+
+// Interstitial ad implementation
+const loadInterstitial = async () => {
+  await interstitial.load({
+    requestOptions: {
+      requestNonPersonalizedAdsOnly: true,
+    },
+  });
+};
+
+// Rewarded ad implementation
+const showRewardedAd = async () => {
+  if (await rewardedAd.isLoaded()) {
+    await rewardedAd.show();
+  }
+};
+```
+
+#### Performance Optimization
+- **Caching Strategy**
+  - Pre-loading ads
+  - Memory management
+  - Cache expiration
+  - Error recovery
+
+- **Network Optimization**
+  - Request batching
+  - Response compression
+  - Connection pooling
+  - Timeout handling
+
+- **Resource Management**
+  - Memory usage optimization
+  - Battery consumption
+  - Network bandwidth
+  - Storage space
+
+#### Error Handling
+```typescript
+try {
+  await ad.load();
+} catch (error) {
+  if (error.code === 'no-fill') {
+    // Handle no ad available
+  } else if (error.code === 'network-error') {
+    // Handle network issues
+  } else {
+    // Handle other errors
+  }
+}
+```
+
+#### Analytics and Monitoring
+- Impression tracking
+- Click-through rates
+- Revenue metrics
+- User engagement
+- Error rates
+- Performance metrics
+
+
+
