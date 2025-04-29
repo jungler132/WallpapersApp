@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AdBanner } from '../components/AdBanner';
+// import { AdBanner } from '../components/AdBanner';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -73,7 +73,7 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
-      <AdBanner />
+      {/* <AdBanner /> */}
     </View>
   );
 } 

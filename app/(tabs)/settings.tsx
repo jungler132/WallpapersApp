@@ -24,18 +24,6 @@ export default function SettingsScreen() {
   } = useSettings();
   const router = useRouter();
 
-  const handleColumnChange = async (columns: 1 | 2) => {
-    console.log('Changing columns to:', columns);
-    if (columns === settings.gridColumns) {
-      console.log('Same column count, skipping update');
-      return;
-    }
-    
-    await updateSettings({ gridColumns: columns });
-    console.log('Settings updated, reloading settings...');
-    await reloadSettings();
-  };
-
   const handleClearCache = () => {
     Alert.alert(
       'Clear Cache',
@@ -67,31 +55,6 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Grid Display</Text>
-        <View style={styles.columnsContainer}>
-          {[1, 2].map((columns) => (
-            <TouchableOpacity
-              key={columns}
-              style={[
-                styles.columnButton,
-                settings.gridColumns === columns && styles.columnButtonActive
-              ]}
-              onPress={() => handleColumnChange(columns as 1 | 2)}
-            >
-              <Text
-                style={[
-                  styles.columnButtonText,
-                  settings.gridColumns === columns && styles.columnButtonTextActive
-                ]}
-              >
-                {columns}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Cache Management</Text>
         <View style={styles.cacheInfo}>
@@ -145,29 +108,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginBottom: 16,
   },
-  columnsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 8,
-  },
-  columnButton: {
-    width: 60,
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 30,
-    backgroundColor: '#2a2a2a',
-  },
-  columnButtonActive: {
-    backgroundColor: '#FF3366',
-  },
-  columnButtonText: {
-    fontSize: 18,
-    color: '#FFFFFF',
-  },
-  columnButtonTextActive: {
-    color: '#FFFFFF',
-  },
   cacheInfo: {
     backgroundColor: '#2a2a2a',
     borderRadius: 12,
@@ -200,20 +140,19 @@ const styles = StyleSheet.create({
   clearButtonText: {
     color: '#FF3366',
     fontSize: 16,
-    fontWeight: 'bold',
+    marginLeft: 8,
   },
   aboutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: '#2a2a2a',
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     gap: 8,
   },
   aboutButtonText: {
-    color: '#FF3366',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    marginLeft: 8,
   },
 }); 

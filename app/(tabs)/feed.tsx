@@ -1,45 +1,63 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl, Dimensions, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { getRandomImages } from '../utils/api';
 import { AnimeImage } from '../components/AnimeImage';
 import type { ImageData } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useSettings } from '../../hooks/useSettings';
 import { useFocusEffect } from 'expo-router';
 
 const { width } = Dimensions.get('window');
+const ITEMS_PER_PAGE = 20;
 
 export default function FeedScreen() {
   const [images, setImages] = useState<ImageData[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isChangingGrid, setIsChangingGrid] = useState(false);
-  const { settings, reloadSettings } = useSettings();
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Refs для отслеживания состояния и оптимизации
+  const isMounted = useRef(true);
+  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const flatListRef = useRef<FlatList>(null);
 
-  // Calculate the number of images to load based on the number of columns
-  const getLoadCount = () => {
-    // Always load 20 images
-    return 20;
-  };
+  // Отслеживаем монтирование компонента
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+    };
+  }, []);
 
-  const loadImages = async (isInitial: boolean = true) => {
+  // Оптимизированная функция загрузки изображений
+  const loadImages = useCallback(async (isInitial: boolean = true) => {
+    if (!isMounted.current) return;
+
     try {
-      const loadCount = getLoadCount();
-      console.log(`Loading ${loadCount} images`);
+      console.log(`[Feed] Loading ${ITEMS_PER_PAGE} images, isInitial:`, isInitial);
       
-      const newImages = await getRandomImages(loadCount);
+      const newImages = await getRandomImages(ITEMS_PER_PAGE);
       
+      if (!isMounted.current) return;
+
       if (isInitial) {
         setImages(newImages);
       } else {
-        setImages(prev => [...prev, ...newImages]);
+        // Проверяем на дубликаты перед добавлением
+        const uniqueImages = newImages.filter(newImage => 
+          !images.some(existingImage => existingImage._id === newImage._id)
+        );
+        setImages(prev => [...prev, ...uniqueImages]);
       }
 
-      // Save images to cache
+      // Кэшируем изображения
       const cachedImages = await AsyncStorage.getItem('cached_images');
       const existingImages = cachedImages ? JSON.parse(cachedImages) : [];
       
-      // Add only new images
+      // Добавляем только уникальные изображения в кэш
       const updatedImages = [...existingImages];
       newImages.forEach(newImage => {
         if (!existingImages.some((img: ImageData) => img._id === newImage._id)) {
@@ -49,51 +67,52 @@ export default function FeedScreen() {
 
       await AsyncStorage.setItem('cached_images', JSON.stringify(updatedImages));
     } catch (error) {
-      console.error('Error loading images:', error);
+      console.error('[Feed] Error loading images:', error);
     }
-  };
+  }, [images]); // Зависимость от images для правильной проверки дубликатов
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
+    if (!isMounted.current) return;
     setRefreshing(true);
     await loadImages(true);
     setRefreshing(false);
-  };
+  }, [loadImages]);
 
-  const loadMore = async () => {
-    if (isLoadingMore) return;
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !isMounted.current) return;
     
     setIsLoadingMore(true);
     await loadImages(false);
     setIsLoadingMore(false);
-  };
+  }, [isLoadingMore, loadImages]);
 
-  // Load images on first mount
+  // Инициализация при монтировании
   useEffect(() => {
-    if (images.length === 0) {
-      loadImages(true);
-    }
-  }, []);
+    const initialize = async () => {
+      if (images.length === 0) {
+        await loadImages(true);
+      }
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
+    };
+    initialize();
+  }, [loadImages]);
 
-  // Update UI when returning to the screen
+  // Оптимизированное обновление UI при возврате на экран
   useFocusEffect(
-    React.useCallback(() => {
-      const updateUI = async () => {
-        setIsChangingGrid(true);
-        console.log('Feed screen focused, reloading settings...');
-        await reloadSettings();
-        console.log('Current grid columns:', settings.gridColumns);
+    useCallback(() => {
+      if (isMounted.current) {
         setImages(prevImages => [...prevImages]);
-        // Small delay before hiding the loader for smoothness
-        setTimeout(() => {
-          setIsChangingGrid(false);
-        }, 300);
-      };
-      
-      updateUI();
+      }
     }, [])
   );
 
-  if (isChangingGrid) {
+  const renderImage = useCallback(({ item }: { item: ImageData }) => (
+    <AnimeImage image={item} />
+  ), []);
+
+  if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF3366" />
@@ -104,17 +123,16 @@ export default function FeedScreen() {
   return (
     <View style={styles.container}>
       <FlatList
+        ref={flatListRef}
         data={images}
-        key={`grid-${settings.gridColumns}`}
-        numColumns={settings.gridColumns}
-        renderItem={({ item }) => <AnimeImage image={item} />}
+        numColumns={1}
+        renderItem={renderImage}
         keyExtractor={(item) => item._id.toString()}
         contentContainerStyle={styles.list}
-        columnWrapperStyle={settings.gridColumns > 1 ? styles.row : undefined}
-        initialNumToRender={getLoadCount()}
-        maxToRenderPerBatch={getLoadCount()}
+        initialNumToRender={ITEMS_PER_PAGE}
+        maxToRenderPerBatch={ITEMS_PER_PAGE}
         windowSize={5}
-        removeClippedSubviews={false}
+        removeClippedSubviews={true}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         refreshControl={
@@ -142,8 +160,5 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 4,
-  },
-  row: {
-    justifyContent: 'flex-start',
-  },
+  }
 }); 

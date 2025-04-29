@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Image, StyleSheet, Dimensions, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Dimensions, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { ImageData } from '../utils/api';
 import { useRouter } from 'expo-router';
-import { useSettings } from '../../hooks/useSettings';
 
 const { width } = Dimensions.get('window');
 
@@ -14,15 +14,13 @@ export const AnimeImage: React.FC<AnimeImageProps> = ({ image }) => {
   const router = useRouter();
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const { settings } = useSettings();
 
-  // Вычисляем размер изображения на основе количества колонок
-  const gap = 8; // Отступ между изображениями
-  const padding = 8; // Отступ по краям экрана
-  const totalGapsWidth = (settings.gridColumns - 1) * gap; // Общая ширина отступов между колонками
+  // Вычисляем размер изображения для одного столбца
+  const gap = 16; // Отступ между изображениями
+  const padding = 16; // Отступ по краям экрана
   const totalPadding = padding * 2; // Общая ширина отступов по краям
-  const availableWidth = width - totalPadding - totalGapsWidth; // Доступная ширина для изображений
-  const imageSize = Math.floor(availableWidth / settings.gridColumns); // Размер одного изображения
+  const imageWidth = width - totalPadding; // Ширина изображения на весь экран минус отступы
+  const imageHeight = imageWidth * 1.5; // Высота в 1.5 раза больше ширины
 
   // Добавляем протокол к URL
   const imageUrl = image.file_url.startsWith('http') 
@@ -46,23 +44,26 @@ export const AnimeImage: React.FC<AnimeImageProps> = ({ image }) => {
 
   return (
     <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
-      <View style={[styles.container, { width: imageSize, height: imageSize }]}>
+      <View style={[styles.container, { width: imageWidth }]}>
         <Image
           source={{ uri: imageUrl }}
-          style={[styles.image, { width: imageSize, height: imageSize }]}
+          style={[styles.image, { width: imageWidth, height: imageHeight }]}
+          contentFit="cover"
+          transition={300}
+          cachePolicy="memory-disk"
+          recyclingKey={image._id.toString()}
           onLoadStart={() => {
             setLoading(true);
             setError(null);
           }}
-          onLoadEnd={() => {
+          onLoad={() => {
             setLoading(false);
           }}
-          onError={(e) => {
-            console.error('Image load error:', e.nativeEvent.error);
+          onError={(error) => {
+            console.error('[AnimeImage] Error loading image:', error);
             setError('Failed to load image');
             setLoading(false);
           }}
-          resizeMode="cover"
         />
         {loading && (
           <View style={styles.loadingContainer}>
@@ -81,7 +82,8 @@ export const AnimeImage: React.FC<AnimeImageProps> = ({ image }) => {
 
 const styles = StyleSheet.create({
   container: {
-    margin: 4,
+    marginVertical: 8,
+    marginHorizontal: 16,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#1a1a1a',

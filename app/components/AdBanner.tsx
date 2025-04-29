@@ -1,3 +1,5 @@
+// Временно отключено для работы в Expo Go
+/*
 import React, { useState } from 'react';
 import { View, Platform } from 'react-native';
 import { BannerAd, BannerAdSize, TestIds, AdError } from 'react-native-google-mobile-ads';
@@ -62,4 +64,13 @@ export const AdBanner = () => {
       />
     </View>
   );
+}; 
+*/
+
+// Временный пустой компонент для Expo Go
+import React from 'react';
+import { View } from 'react-native';
+
+export const AdBanner = () => {
+  return <View />; // Возвращаем пустой компонент
 }; 
