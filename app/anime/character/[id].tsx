@@ -59,6 +59,15 @@ interface CharacterPictures {
   }>;
 }
 
+const removeDuplicatePictures = (pictures: { jpg: { image_url: string } }[]) => {
+  const seen = new Set();
+  return pictures.filter(picture => {
+    const duplicate = seen.has(picture.jpg.image_url);
+    seen.add(picture.jpg.image_url);
+    return !duplicate;
+  });
+};
+
 export default function CharacterDetailsScreen() {
   const { id } = useLocalSearchParams();
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
@@ -76,10 +85,26 @@ export default function CharacterDetailsScreen() {
     queryKey: ['characterPictures', id],
     queryFn: async () => {
       const response = await axios.get(`https://api.jikan.moe/v4/characters/${id}/pictures`);
-      return response.data;
+      return {
+        ...response.data,
+        data: removeDuplicatePictures(response.data.data)
+      };
     },
-    enabled: !!id,
+    staleTime: 1000 * 60 * 60, // 1 hour
   });
+
+  const allImages = React.useMemo(() => {
+    if (!character || !character.data) return [];
+    
+    const mainImage = { image_url: character.data.images.jpg.image_url };
+    const galleryImages = pictures?.data.map(pic => ({ image_url: pic.jpg.image_url })) || [];
+    
+    // Check if main image URL exists in gallery images
+    const mainImageExists = galleryImages.some(img => img.image_url === mainImage.image_url);
+    
+    // Only add main image if it's not in gallery
+    return mainImageExists ? galleryImages : [mainImage, ...galleryImages];
+  }, [character, pictures]);
 
   const downloadImage = async (imageUrl: string, index: number) => {
     try {
@@ -141,11 +166,6 @@ export default function CharacterDetailsScreen() {
       </View>
     );
   }
-
-  const allImages = [
-    { image_url: character.data.images.jpg.image_url },
-    ...(pictures?.data.map(pic => ({ image_url: pic.jpg.image_url })) || [])
-  ];
 
   return (
     <>

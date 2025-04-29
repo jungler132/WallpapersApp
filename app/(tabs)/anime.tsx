@@ -197,6 +197,8 @@ export default function AnimeScreen() {
             style={styles.animeImage}
             contentFit="cover"
             transition={300}
+            placeholder={require('../../assets/placeholder/image-placeholder.png')}
+            placeholderContentFit="contain"
           />
           <View style={styles.topOverlay}>
             <View>
@@ -294,7 +296,7 @@ export default function AnimeScreen() {
   if (isLoading() && !getAnimeData().length) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
   }
@@ -448,7 +450,7 @@ export default function AnimeScreen() {
           ListFooterComponent={() => (
             isLoading() ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#0000ff" />
+                <ActivityIndicator size="large" color={COLORS.accent} />
               </View>
             ) : null
           )}
