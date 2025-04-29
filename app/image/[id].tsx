@@ -81,6 +81,8 @@ export default function ImageDetailsScreen() {
   };
 
   const handleFavoriteToggle = async (newIsFavorite: boolean) => {
+    if (!image._id) return; // Защита от undefined ID
+
     try {
       console.log('Toggling favorite status:', newIsFavorite, 'for image ID:', image._id);
       const favorites = await AsyncStorage.getItem('favorites');
@@ -96,20 +98,28 @@ export default function ImageDetailsScreen() {
           
           // Проверяем, нет ли уже этого изображения в кэше
           if (!cachedImagesArray.some((img: ImageData) => img._id === image._id)) {
-            cachedImagesArray.push({
+            // Убеждаемся, что у нас есть все необходимые данные
+            const imageToCache = {
               _id: image._id,
-              file_url: image.file_url,
-              file_size: image.file_size,
-              tags: image.tags,
-              md5: image.md5,
-              width: image.width,
-              height: image.height,
-              source: image.source,
-              author: image.author,
-              has_children: image.has_children
-            });
-            await AsyncStorage.setItem('cached_images', JSON.stringify(cachedImagesArray));
-            console.log('Image saved to cache:', image._id);
+              file_url: image.file_url || imageUrl, // Используем обработанный URL если оригинальный отсутствует
+              file_size: image.file_size || 0,
+              tags: image.tags || [],
+              md5: image.md5 || '',
+              width: image.width || 0,
+              height: image.height || 0,
+              source: image.source || '',
+              author: image.author || '',
+              has_children: image.has_children || false
+            };
+            
+            // Проверяем существующие элементы и обновляем или добавляем новый
+            const updatedCachedImages = cachedImagesArray.filter(
+              (img: ImageData) => img._id !== image._id
+            );
+            updatedCachedImages.push(imageToCache);
+            
+            await AsyncStorage.setItem('cached_images', JSON.stringify(updatedCachedImages));
+            console.log('Image saved to cache:', imageToCache);
           }
         }
       } else {
@@ -119,8 +129,22 @@ export default function ImageDetailsScreen() {
       console.log('New favorites array:', favoritesArray);
       await AsyncStorage.setItem('favorites', JSON.stringify(favoritesArray));
       setIsFavorite(newIsFavorite);
+
+      // Показываем уведомление
+      Toast.show({
+        type: 'success',
+        text1: newIsFavorite ? 'Added to favorites' : 'Removed from favorites',
+        position: 'bottom',
+        visibilityTime: 2000,
+      });
     } catch (error) {
       console.error('Error toggling favorite:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error updating favorites',
+        position: 'bottom',
+        visibilityTime: 2000,
+      });
     }
   };
 
