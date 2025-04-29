@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, FlatList, Dimensions, TouchableOpacity, Platform } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import * as FileSystem from 'expo-file-system';
@@ -44,6 +44,14 @@ interface CharacterDetails {
     nicknames: string[];
     favorites: number;
     about: string;
+    anime: {
+      role: string;
+      anime: {
+        mal_id: number;
+        title: string;
+        url: string;
+      }
+    }[];
   };
 }
 
@@ -199,12 +207,12 @@ export default function CharacterDetailsScreen() {
                   });
                 }
               }}
-              style={{ marginRight: 16 }}
+              style={styles.favoriteButton}
             >
               <MaterialCommunityIcons
-                name={isFavorite ? 'heart' : 'heart-outline'}
+                name={isFavorite ? "heart" : "heart-outline"}
                 size={24}
-                color={isFavorite ? '#FF3366' : COLORS.text}
+                color={isFavorite ? COLORS.accent : COLORS.text}
               />
             </TouchableOpacity>
           ),
@@ -214,7 +222,7 @@ export default function CharacterDetailsScreen() {
         <View style={styles.header}>
           <Image
             source={{ uri: character.data.images.jpg.image_url }}
-            style={styles.characterImage}
+            style={styles.mainImage}
             resizeMode="cover"
           />
           <View style={styles.nameContainer}>
@@ -240,52 +248,76 @@ export default function CharacterDetailsScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Favorites</Text>
-          <Text style={styles.favoritesText}>{character.data.favorites.toLocaleString()}</Text>
+          <Text style={styles.favoritesCount}>{character.data.favorites}</Text>
         </View>
 
         {character.data.about && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>About</Text>
-            <Text style={styles.aboutText}>{character.data.about}</Text>
+            <Text style={styles.about}>{character.data.about}</Text>
           </View>
         )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Gallery</Text>
-          {isLoadingPictures ? (
-            <ActivityIndicator size="small" color={COLORS.accent} />
-          ) : (
+        {character.data.anime && character.data.anime.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Appears In</Text>
+            {character.data.anime.map((appearance, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.animeItem}
+                activeOpacity={0.7}
+                onPress={() => {
+                  router.push({
+                    pathname: '/anime/[id]',
+                    params: { id: appearance.anime.mal_id }
+                  });
+                }}
+              >
+                <Text style={styles.animeTitle}>{appearance.anime.title}</Text>
+                <Text style={styles.animeRole}>{appearance.role}</Text>
+                <MaterialCommunityIcons 
+                  name="chevron-right" 
+                  size={20} 
+                  color={COLORS.textSecondary}
+                  style={styles.animeArrow}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {allImages.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Gallery</Text>
             <FlatList
               data={allImages}
-              numColumns={IMAGES_PER_ROW}
-              scrollEnabled={false}
+              numColumns={2}
               renderItem={({ item, index }) => (
-                <View style={styles.imageWrapper}>
-                  <View style={styles.imageContainer}>
-                    <Image
-                      source={{ uri: item.image_url }}
-                      style={styles.galleryImage}
-                      resizeMode="cover"
-                    />
-                    <TouchableOpacity
-                      style={styles.downloadButton}
-                      onPress={() => downloadImage(item.image_url, index)}
-                      disabled={downloadingIndex === index}
-                    >
-                      {downloadingIndex === index ? (
-                        <ActivityIndicator size="small" color={COLORS.text} />
-                      ) : (
-                        <Ionicons name="download-outline" size={20} color={COLORS.text} />
-                      )}
-                    </TouchableOpacity>
-                  </View>
+                <View style={styles.imageContainer}>
+                  <Image
+                    source={{ uri: item.image_url }}
+                    style={styles.galleryImage}
+                    resizeMode="cover"
+                  />
+                  <TouchableOpacity
+                    style={styles.downloadButton}
+                    onPress={() => downloadImage(item.image_url, index)}
+                    disabled={downloadingIndex !== null}
+                  >
+                    {downloadingIndex === index ? (
+                      <ActivityIndicator color={COLORS.text} size="small" />
+                    ) : (
+                      <Ionicons name="download-outline" size={24} color={COLORS.text} />
+                    )}
+                  </TouchableOpacity>
                 </View>
               )}
               keyExtractor={(item, index) => index.toString()}
+              scrollEnabled={false}
               contentContainerStyle={styles.galleryContainer}
             />
-          )}
-        </View>
+          </View>
+        )}
       </ScrollView>
       <Toast />
     </>
@@ -317,7 +349,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
-  characterImage: {
+  mainImage: {
     width: 200,
     height: 300,
     borderRadius: 12,
@@ -364,28 +396,45 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 14,
   },
-  favoritesText: {
+  favoritesCount: {
     color: COLORS.text,
     fontSize: 16,
   },
-  aboutText: {
+  about: {
     color: COLORS.text,
     fontSize: 14,
     lineHeight: 20,
   },
+  animeItem: {
+    backgroundColor: COLORS.secondary,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  animeTitle: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    flex: 1,
+  },
+  animeRole: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    marginRight: 8,
+  },
+  animeArrow: {
+    marginLeft: 'auto',
+  },
   galleryContainer: {
     padding: IMAGE_MARGIN / 2,
   },
-  imageWrapper: {
+  imageContainer: {
     width: IMAGE_WIDTH,
     height: IMAGE_HEIGHT,
     padding: IMAGE_MARGIN / 2,
-  },
-  imageContainer: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 12,
-    overflow: 'hidden',
     position: 'relative',
     backgroundColor: COLORS.cardBg,
   },
@@ -411,5 +460,8 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.22,
     shadowRadius: 2.22,
+  },
+  favoriteButton: {
+    marginRight: 16,
   },
 }); 

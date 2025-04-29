@@ -43,6 +43,13 @@ interface Character {
       image_url: string;
     }
   }[];
+  anime: {
+    role: string;
+    anime: {
+      title: string;
+      mal_id: number;
+    }
+  }[];
 }
 
 interface CharacterResponse {
@@ -487,8 +494,15 @@ export default function SearchScreen() {
   });
 
   const renderCharacterItem = useCallback(({ item }: { item: Character }) => {
-    // Проверяем URL изображения на MAL иконку
     const isPlaceholder = item.images?.jpg?.image_url?.includes('apple-touch-icon-256.png');
+    
+    // Берем первые 2 аниме для отображения
+    const animeAppearances = item.anime?.slice(0, 2).map(appearance => ({
+      title: appearance.anime.title,
+      role: appearance.role
+    }));
+    const totalAnime = item.anime?.length || 0;
+    const hasMoreAnime = totalAnime > 2;
 
     return (
       <TouchableOpacity
@@ -515,8 +529,21 @@ export default function SearchScreen() {
             placeholderContentFit="contain"
           />
         )}
-        <View style={styles.characterNameContainer}>
-          <Text style={styles.characterName} numberOfLines={2}>{item.name}</Text>
+        <View style={styles.characterInfoContainer}>
+          <Text style={styles.characterName} numberOfLines={1}>{item.name}</Text>
+          <View style={styles.animeList}>
+            {animeAppearances?.map((appearance, index) => (
+              <Text key={index} style={styles.animeItem} numberOfLines={1}>
+                {appearance.title}
+                <Text style={styles.roleText}> • {appearance.role}</Text>
+              </Text>
+            ))}
+            {hasMoreAnime && (
+              <Text style={styles.moreAnimeText}>
+                +{totalAnime - 2} more anime
+              </Text>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -682,13 +709,11 @@ export default function SearchScreen() {
           </View>
         )}
 
-        {searchMode === 'characters' && isLoadingCharacters && (
+        {searchMode === 'characters' && isLoadingCharacters ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#FF3366" />
           </View>
-        )}
-
-        {searchMode === 'characters' && isCharactersError && (
+        ) : searchMode === 'characters' && isCharactersError ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>Error: {charactersError?.message || 'Failed to load characters'}</Text>
             <TouchableOpacity 
@@ -700,39 +725,42 @@ export default function SearchScreen() {
               <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
           </View>
+        ) : (
+          <View style={styles.imagesContainer}>
+            {(searchMode === 'arts' && selectedTags.length > 0) || 
+             (searchMode === 'characters' && characterSearch.trim().length > 0) ? (
+              <Text style={styles.sectionTitle}>Search Results</Text>
+            ) : null}
+            {isLoading ? (
+              <ActivityIndicator color="#FF3366" style={styles.loader} />
+            ) : (
+              <FlatList
+                ref={flatListRef}
+                data={getSearchData()}
+                renderItem={renderItem}
+                keyExtractor={(item, index) => index.toString()}
+                numColumns={2}
+                contentContainerStyle={styles.imageList}
+                onEndReached={loadMore}
+                onEndReachedThreshold={0.5}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                ListEmptyComponent={EmptyState}
+                ListFooterComponent={() => (
+                  ((searchMode === 'arts' && isFetchingNextArtsPage) ||
+                   (searchMode === 'characters' && isFetchingNextCharactersPage)) ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="large" color={COLORS.accent} />
+                    </View>
+                  ) : null
+                )}
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={10}
+                windowSize={5}
+              />
+            )}
+          </View>
         )}
-
-        <View style={styles.imagesContainer}>
-          <Text style={styles.sectionTitle}>Search Results</Text>
-          {isLoading ? (
-            <ActivityIndicator color="#FF3366" style={styles.loader} />
-          ) : (
-            <FlatList
-              ref={flatListRef}
-              data={getSearchData()}
-              renderItem={renderItem}
-              keyExtractor={(item, index) => index.toString()}
-              numColumns={2}
-              contentContainerStyle={styles.imageList}
-              onEndReached={loadMore}
-              onEndReachedThreshold={0.5}
-              onScroll={handleScroll}
-              scrollEventThrottle={16}
-              ListEmptyComponent={EmptyState}
-              ListFooterComponent={() => (
-                ((searchMode === 'arts' && isFetchingNextArtsPage) ||
-                 (searchMode === 'characters' && isFetchingNextCharactersPage)) ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={COLORS.accent} />
-                  </View>
-                ) : null
-              )}
-              removeClippedSubviews={true}
-              maxToRenderPerBatch={10}
-              windowSize={5}
-            />
-          )}
-        </View>
       </View>
     </>
   );
@@ -898,18 +926,38 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
   },
-  characterNameContainer: {
+  characterInfoContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     padding: 8,
   },
   characterName: {
     color: COLORS.text,
     fontSize: 14,
+    fontWeight: 'bold',
     textAlign: 'center',
+    marginBottom: 4,
+  },
+  animeList: {
+    gap: 2,
+  },
+  animeItem: {
+    color: COLORS.text,
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  roleText: {
+    color: COLORS.textSecondary,
+    fontSize: 10,
+  },
+  moreAnimeText: {
+    color: COLORS.accent,
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: 2,
   },
   imageCard: {
     width: ITEM_WIDTH,
