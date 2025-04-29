@@ -199,12 +199,14 @@ export default function AnimeScreen() {
             transition={300}
           />
           <View style={styles.topOverlay}>
-            {item.score && (
-              <View style={styles.scoreContainer}>
-                <Ionicons name="star" size={12} color={COLORS.accent} />
-                <Text style={styles.scoreText}>{item.score.toFixed(1)}</Text>
-              </View>
-            )}
+            <View>
+              {item.score && (
+                <View style={styles.scoreContainer}>
+                  <Ionicons name="star" size={12} color={COLORS.accent} />
+                  <Text style={styles.scoreText}>{item.score.toFixed(1)}</Text>
+                </View>
+              )}
+            </View>
             {item.trailer?.youtube_id && (
               <TouchableOpacity 
                 style={styles.trailerButton}

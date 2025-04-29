@@ -26,6 +26,10 @@ export default function TabLayout() {
           headerTitleStyle: {
             fontWeight: 'bold',
           },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            textAlign: 'center',
+          },
         }}>
         <Tabs.Screen
           name="feed"
