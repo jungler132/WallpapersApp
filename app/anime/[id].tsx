@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { useAnimeDetails } from '../hooks/useAnime';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
@@ -112,6 +112,13 @@ export default function AnimeDetailsScreen() {
                 <Text style={styles.infoValue}>{anime.studios[0].name}</Text>
               </View>
             )}
+            <TouchableOpacity
+              style={styles.charactersButton}
+              onPress={() => router.push(`/anime/characters/${id}`)}
+            >
+              <Ionicons name="people" size={24} color={COLORS.text} />
+              <Text style={styles.charactersButtonText}>View Characters</Text>
+            </TouchableOpacity>
           </View>
 
           {anime.genres && anime.genres.length > 0 && (
@@ -284,5 +291,20 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  charactersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.secondary,
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  charactersButtonText: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 }); 

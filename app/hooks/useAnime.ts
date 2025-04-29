@@ -203,4 +203,54 @@ export const useAnimeDetails = (id: number) => {
     },
     enabled: !!id,
   });
+};
+
+export interface Character {
+  mal_id: number;
+  url: string;
+  images: {
+    jpg: {
+      image_url: string;
+    };
+    webp: {
+      image_url: string;
+    };
+  };
+  name: string;
+  name_kanji: string;
+  nicknames: string[];
+  favorites: number;
+  about: string;
+}
+
+interface CharacterResponse {
+  data: Array<{
+    character: Character;
+    role: string;
+    favorites: number;
+    voice_actors: Array<{
+      person: {
+        mal_id: number;
+        url: string;
+        images: {
+          jpg: {
+            image_url: string;
+          }
+        };
+        name: string;
+      };
+      language: string;
+    }>;
+  }>;
+}
+
+export const useAnimeCharacters = (id: number) => {
+  return useQuery<CharacterResponse>({
+    queryKey: ['animeCharacters', id],
+    queryFn: async () => {
+      const response = await axios.get<CharacterResponse>(`${BASE_URL}/anime/${id}/characters`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
 }; 
