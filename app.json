@@ -51,7 +51,15 @@
           "backgroundColor": "#1a1a1a"
         }
       ],
-      "expo-tracking-transparency"
+      "expo-tracking-transparency",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "android_app_id": "ca-app-pub-6203993897795010~9663906446",
+          "delay_app_measurement_init": true,
+          "user_tracking_usage_description": "This identifier will be used to deliver personalized ads to you."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -61,10 +69,5 @@
       "resizeMode": "contain",
       "backgroundColor": "#1a1a1a"
     }
-  },
-  "react-native-google-mobile-ads": {
-    "android_app_id": "ca-app-pub-6203993897795010~9663906446",
-    "delay_app_measurement_init": true,
-    "user_tracking_usage_description": "This identifier will be used to deliver personalized ads to you."
   }
 }
