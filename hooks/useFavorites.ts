@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ImageData } from '../utils/api';
 
 interface Character {
   mal_id: number;
@@ -33,13 +34,26 @@ export const useFavorites = () => {
     }
   };
 
-  const toggleFavoriteArt = async (id: number) => {
+  const toggleFavoriteArt = async (id: number, imageData?: ImageData) => {
     try {
       const newFavorites = favoriteArts.includes(id)
         ? favoriteArts.filter(artId => artId !== id)
         : [...favoriteArts, id];
 
       await AsyncStorage.setItem('favorites', JSON.stringify(newFavorites));
+      
+      // If adding to favorites and we have image data, cache it
+      if (!favoriteArts.includes(id) && imageData) {
+        const cachedImages = await AsyncStorage.getItem('cached_images');
+        const existingCache = cachedImages ? JSON.parse(cachedImages) : [];
+        
+        // Check if image is already in cache
+        const updatedCache = existingCache.filter((img: ImageData) => img._id !== id);
+        updatedCache.push(imageData);
+        
+        await AsyncStorage.setItem('cached_images', JSON.stringify(updatedCache));
+      }
+
       setFavoriteArts(newFavorites);
       return true;
     } catch (error) {

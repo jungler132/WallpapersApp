@@ -281,9 +281,10 @@ export default function ImageDetailsScreen() {
         </TouchableOpacity>
         <View style={styles.actions}>
           <FavoriteButton 
-            imageId={image._id || 0}
-            isFavorite={isFavorite}
+            imageId={image._id || 0} 
+            isFavorite={isFavorite} 
             onToggle={handleFavoriteToggle}
+            imageData={image as ImageData}
           />
           <TouchableOpacity 
             style={styles.actionButton} 
