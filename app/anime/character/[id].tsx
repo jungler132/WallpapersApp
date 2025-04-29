@@ -5,8 +5,9 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
+import { useFavorites } from '../../../hooks/useFavorites';
 
 const COLORS = {
   primary: '#121212',
@@ -72,19 +73,22 @@ export default function CharacterDetailsScreen() {
   const { id } = useLocalSearchParams();
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
   const [downloadingIndex, setDownloadingIndex] = useState<number | null>(null);
+  const { isCharacterFavorite, toggleFavoriteCharacter } = useFavorites();
+  const characterId = typeof id === 'string' ? parseInt(id) : Array.isArray(id) ? parseInt(id[0]) : 0;
+  const isFavorite = isCharacterFavorite(characterId);
 
   const { data: character, isLoading: isLoadingCharacter, isError: isErrorCharacter } = useQuery<CharacterDetails>({
-    queryKey: ['characterDetails', id],
+    queryKey: ['characterDetails', characterId],
     queryFn: async () => {
-      const response = await axios.get(`https://api.jikan.moe/v4/characters/${id}/full`);
+      const response = await axios.get(`https://api.jikan.moe/v4/characters/${characterId}/full`);
       return response.data;
     },
   });
 
   const { data: pictures, isLoading: isLoadingPictures } = useQuery<CharacterPictures>({
-    queryKey: ['characterPictures', id],
+    queryKey: ['characterPictures', characterId],
     queryFn: async () => {
-      const response = await axios.get(`https://api.jikan.moe/v4/characters/${id}/pictures`);
+      const response = await axios.get(`https://api.jikan.moe/v4/characters/${characterId}/pictures`);
       return {
         ...response.data,
         data: removeDuplicatePictures(response.data.data)
@@ -176,6 +180,34 @@ export default function CharacterDetailsScreen() {
             backgroundColor: COLORS.primary,
           },
           headerTintColor: COLORS.text,
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={async () => {
+                const success = await toggleFavoriteCharacter(characterId, character?.data ? {
+                  mal_id: character.data.mal_id,
+                  name: character.data.name,
+                  images: {
+                    jpg: {
+                      image_url: character.data.images.jpg.image_url
+                    }
+                  }
+                } : undefined);
+                if (success) {
+                  Toast.show({
+                    type: 'success',
+                    text1: isFavorite ? 'Removed from favorites' : 'Added to favorites',
+                  });
+                }
+              }}
+              style={{ marginRight: 16 }}
+            >
+              <MaterialCommunityIcons
+                name={isFavorite ? 'heart' : 'heart-outline'}
+                size={24}
+                color={isFavorite ? '#FF3366' : COLORS.text}
+              />
+            </TouchableOpacity>
+          ),
         }}
       />
       <ScrollView style={styles.container}>
