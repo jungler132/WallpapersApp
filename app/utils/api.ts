@@ -21,7 +21,7 @@ export const getRandomImage = async (): Promise<ImageData> => {
     const response = await fetch(`${API_BASE_URL}/image.json?compress=true`, {
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'AnimeWallpapers/1.0',
+        'User-Agent': 'OtakuWalls/1.0',
       },
     });
     

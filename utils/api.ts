@@ -41,7 +41,7 @@ export const getRandomImage = async (params?: {
       },
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'AnimeWallpapers/1.0'
+        'User-Agent': 'OtakuWalls/1.0'
       }
     });
     return response.data;
@@ -70,7 +70,7 @@ export const getRandomImages = async (tags?: string[]): Promise<ImageData[]> => 
         params,
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'AnimeWallpapers/1.0'
+          'User-Agent': 'OtakuWalls/1.0'
         }
       });
 
@@ -118,7 +118,7 @@ export const getImageById = async (id: number): Promise<ImageData> => {
       params: { id },
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'AnimeWallpapers/1.0'
+        'User-Agent': 'OtakuWalls/1.0'
       }
     });
     return response.data;
@@ -133,7 +133,7 @@ export const getTags = async (): Promise<TagData[]> => {
     const response = await axios.get(`${API_BASE_URL}/tags`, {
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'AnimeWallpapers/1.0'
+        'User-Agent': 'OtakuWalls/1.0'
       }
     });
     return response.data;
@@ -167,7 +167,7 @@ export const getImageFile = async (params?: {
       responseType: 'blob',
       headers: {
         'Accept': 'image/*',
-        'User-Agent': 'AnimeWallpapers/1.0'
+        'User-Agent': 'OtakuWalls/1.0'
       }
     });
     return {

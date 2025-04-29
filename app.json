@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "AnimeWallpapers",
-    "slug": "AnimeWallpapers",
+    "name": "OtakuWalls",
+    "slug": "OtakuWalls",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/otakuwalls_logo.png",

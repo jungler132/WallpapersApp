@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Dimensions, TouchableOpacity, ActivityIndicator, Text, ScrollView, Linking, Alert } from 'react-native';
+import { View, StyleSheet, Dimensions, TouchableOpacity, ActivityIndicator, Text, ScrollView, Linking, Alert, Modal } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +8,6 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { ImageData } from '../../utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import ImageView from 'react-native-image-viewing';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FavoriteButton from '../../components/FavoriteButton';
@@ -355,14 +354,25 @@ export default function ImageDetailsScreen() {
         </View>
       </ScrollView>
 
-      <ImageView
-        images={[{ uri: params.cached_uri || fullUri || params.file_url }]}
-        imageIndex={0}
+      <Modal
         visible={isImageViewVisible}
+        transparent={true}
         onRequestClose={() => setIsImageViewVisible(false)}
-        swipeToCloseEnabled={true}
-        doubleTapToZoomEnabled={true}
-      />
+      >
+        <View style={styles.fullscreenContainer}>
+          <TouchableOpacity 
+            style={styles.fullscreenCloseButton}
+            onPress={() => setIsImageViewVisible(false)}
+          >
+            <Ionicons name="close" size={24} color="white" />
+          </TouchableOpacity>
+          <Image
+            source={{ uri: fullUri }}
+            style={styles.fullscreenImage}
+            contentFit="contain"
+          />
+        </View>
+      </Modal>
       <Toast />
     </View>
   );
@@ -482,5 +492,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  fullscreenContainer: {
+    flex: 1,
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenCloseButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 1,
+    padding: 10,
+  },
+  fullscreenImage: {
+    width: '100%',
+    height: '100%',
   },
 }); 
