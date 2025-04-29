@@ -7,12 +7,23 @@ export type AnimeSeason = 'winter' | 'spring' | 'summer' | 'fall';
 
 export interface Anime {
   mal_id: number;
+  url: string;
   images: {
     jpg: {
       image_url: string;
       small_image_url: string;
       large_image_url: string;
     };
+    webp: {
+      image_url: string;
+      small_image_url: string;
+      large_image_url: string;
+    };
+  };
+  trailer: {
+    youtube_id: string;
+    url: string;
+    embed_url: string;
   };
   title: string;
   title_english: string;
@@ -22,10 +33,6 @@ export interface Anime {
   episodes: number;
   status: string;
   airing: boolean;
-  aired: {
-    from: string;
-    to: string;
-  };
   duration: string;
   rating: string;
   score: number;
@@ -35,12 +42,17 @@ export interface Anime {
   members: number;
   favorites: number;
   synopsis: string;
-  season?: string;
-  year?: number;
+  background: string;
+  season: string;
+  year: number;
   studios: Array<{
+    mal_id: number;
+    type: string;
     name: string;
   }>;
   genres: Array<{
+    mal_id: number;
+    type: string;
     name: string;
   }>;
 }

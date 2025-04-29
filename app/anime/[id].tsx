@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useAnimeDetails } from '../hooks/useAnime';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 
 const COLORS = {
   primary: '#121212',
@@ -53,6 +54,16 @@ export default function AnimeDetailsScreen() {
             style={styles.coverImage}
             resizeMode="cover"
           />
+          {anime.trailer?.youtube_id && (
+            <TouchableOpacity
+              style={styles.youtubeButton}
+              onPress={() => {
+                WebBrowser.openBrowserAsync(`https://www.youtube.com/watch?v=${anime.trailer.youtube_id}`);
+              }}
+            >
+              <Ionicons name="logo-youtube" size={24} color="#FF0000" />
+            </TouchableOpacity>
+          )}
           <View style={styles.overlay}>
             <View style={styles.titleContainer}>
               <Text style={styles.title}>{anime.title}</Text>
@@ -254,5 +265,24 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 14,
     lineHeight: 20,
+  },
+  youtubeButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 12,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
 }); 

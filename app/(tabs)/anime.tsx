@@ -1,8 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, TextInput, ScrollView, Dimensions, Modal } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useTopAnime, useAnimeSearch, Anime, useSeasonalAnime, useCurrentSeasonAnime, useAnimeByStatus, AnimeSeason } from '../hooks/useAnime';
 import { Ionicons } from '@expo/vector-icons';
+import { Image as ExpoImage } from 'expo-image';
+import { Video } from 'expo-av';
+import * as WebBrowser from 'expo-web-browser';
 
 const COLORS = {
   primary: '#121212',
@@ -189,55 +192,78 @@ export default function AnimeScreen() {
     >
       <View style={styles.animeContent}>
         <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: item.images.jpg.image_url }}
+          <ExpoImage
+            source={{ uri: item.images.jpg.large_image_url }}
             style={styles.animeImage}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={300}
           />
-          <View style={styles.scoreContainer}>
-            <Ionicons name="star" size={12} color={COLORS.accent} />
-            <Text style={styles.scoreText}>{item.score?.toFixed(2) || 'N/A'}</Text>
-          </View>
-        </View>
-        <View style={styles.animeInfo}>
-          <View style={styles.infoContent}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.animeTitle} numberOfLines={2}>
-                {item.title}
-              </Text>
-              {item.title_japanese && (
-                <Text style={styles.japaneseTitle} numberOfLines={1}>
-                  {item.title_japanese}
-                </Text>
-              )}
-            </View>
-            <View style={styles.metaRow}>
-              <Ionicons name="tv-outline" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.metaText}>{item.type || 'Unknown'}</Text>
-              {item.episodes && (
-                <>
-                  <Text style={styles.metaDot}>•</Text>
-                  <Text style={styles.metaText}>{item.episodes} eps</Text>
-                </>
-              )}
-            </View>
-            {item.studios && item.studios.length > 0 && (
-              <Text style={styles.studioText} numberOfLines={1}>
-                {item.studios[0].name}
-              </Text>
+          <View style={styles.topOverlay}>
+            {item.score && (
+              <View style={styles.scoreContainer}>
+                <Ionicons name="star" size={12} color={COLORS.accent} />
+                <Text style={styles.scoreText}>{item.score.toFixed(1)}</Text>
+              </View>
+            )}
+            {item.trailer?.youtube_id && (
+              <TouchableOpacity 
+                style={styles.trailerButton}
+                onPress={() => {
+                  WebBrowser.openBrowserAsync(`https://www.youtube.com/watch?v=${item.trailer.youtube_id}`);
+                }}
+              >
+                <Ionicons name="logo-youtube" size={16} color="#FF0000" />
+              </TouchableOpacity>
             )}
           </View>
-          <View style={styles.bottomContent}>
-            {item.genres && item.genres.length > 0 && (
-              <View style={styles.genreContainer}>
-                {item.genres.slice(0, 2).map((genre, index) => (
-                  <View key={index} style={styles.genreTag}>
-                    <Text style={styles.genreText}>{genre.name}</Text>
-                  </View>
-                ))}
+        </View>
+        
+        <View style={styles.infoContainer}>
+          <Text style={styles.titleEnglish} numberOfLines={2}>
+            {item.title_english || item.title}
+          </Text>
+          {item.title_japanese && (
+            <Text style={styles.titleJapanese} numberOfLines={1}>
+              {item.title_japanese}
+            </Text>
+          )}
+          
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Ionicons name="people-outline" size={14} color={COLORS.textSecondary} />
+              <Text style={styles.statText}>{(item.members / 1000).toFixed(0)}K</Text>
+            </View>
+            {item.episodes && (
+              <View style={styles.statItem}>
+                <Ionicons name="tv-outline" size={14} color={COLORS.textSecondary} />
+                <Text style={styles.statText}>{item.episodes} eps</Text>
+              </View>
+            )}
+            {item.duration && (
+              <View style={styles.statItem}>
+                <Ionicons name="time-outline" size={14} color={COLORS.textSecondary} />
+                <Text style={styles.statText}>{item.duration.split(' ')[0]}</Text>
               </View>
             )}
           </View>
+
+          {item.source && (
+            <View style={styles.sourceContainer}>
+              <Text style={styles.sourceText}>
+                Source: {item.source}
+              </Text>
+            </View>
+          )}
+
+          {item.genres && item.genres.length > 0 && (
+            <View style={styles.genresContainer}>
+              {item.genres.slice(0, 2).map((genre, index) => (
+                <View key={index} style={styles.genreTag}>
+                  <Text style={styles.genreText}>{genre.name}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -631,6 +657,7 @@ const styles = StyleSheet.create({
     minHeight: 180,
     display: 'flex',
     flexDirection: 'column',
+    justifyContent: 'space-between',
   },
   imageContainer: {
     width: '100%',
@@ -643,10 +670,16 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  scoreContainer: {
+  topOverlay: {
     position: 'absolute',
     top: 8,
+    left: 8,
     right: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  scoreContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 12,
     padding: 4,
@@ -659,69 +692,67 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 4,
   },
-  animeInfo: {
+  infoContainer: {
     padding: 12,
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'space-between',
   },
-  infoContent: {
-    flex: 1,
-  },
-  bottomContent: {
-    marginTop: 'auto',
-    paddingTop: 8,
-  },
-  titleContainer: {
-    marginBottom: 8,
-  },
-  animeTitle: {
+  titleEnglish: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 4,
   },
-  japaneseTitle: {
+  titleJapanese: {
     fontSize: 12,
     color: COLORS.textSecondary,
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  metaInfo: {
-    marginTop: 'auto',
-    gap: 4,
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 12,
   },
-  metaRow: {
+  statItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  metaText: {
-    color: COLORS.textSecondary,
+  statText: {
     fontSize: 12,
+    color: COLORS.textSecondary,
   },
-  metaDot: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
+  sourceContainer: {
+    marginBottom: 8,
   },
-  studioText: {
-    color: COLORS.textSecondary,
+  sourceText: {
     fontSize: 12,
+    color: COLORS.textSecondary,
     fontStyle: 'italic',
   },
-  genreContainer: {
+  trailerButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 12,
+    padding: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  genresContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 4,
+    marginTop: 'auto',
   },
   genreTag: {
     backgroundColor: COLORS.secondary,
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   genreText: {
-    color: COLORS.text,
     fontSize: 10,
+    color: COLORS.text,
   },
 }); 
