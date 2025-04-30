@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SmallAdBanner } from '../components/AdBanner';
 // import { AdBanner } from '../components/AdBanner';
 
 export default function TabLayout() {
@@ -77,6 +78,9 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
+      <View style={{ position: 'absolute', bottom: 49, left: 0, right: 0 }}>
+        <SmallAdBanner />
+      </View>
       {/* <AdBanner /> */}
     </View>
   );

@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Toast } from 'react-native-toast-message/lib/src/Toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-// import mobileAds, { MaxAdContentRating } from 'react-native-google-mobile-ads';
+import mobileAds, { MaxAdContentRating } from 'react-native-google-mobile-ads';
 import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import { Platform, LogBox, NativeModules } from 'react-native';
 
@@ -55,8 +55,13 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   useEffect(() => {
     const initializeAdMob = async () => {
-      // AdMob временно отключен для работы в Expo Go
-      console.log('[App] AdMob initialization skipped for Expo Go compatibility');
+      await mobileAds().initialize();
+      await mobileAds().setRequestConfiguration({
+        maxAdContentRating: MaxAdContentRating.PG,
+        tagForChildDirectedTreatment: true,
+        tagForUnderAgeOfConsent: true,
+      });
+      console.log('[App] AdMob initialized successfully');
     };
 
     initializeAdMob();

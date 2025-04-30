@@ -6,11 +6,30 @@ import type { ImageData } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { router } from 'expo-router';
+import { FeedAdBanner } from '../components/AdBanner';
 
 const { width } = Dimensions.get('window');
 const ITEMS_PER_PAGE = 20;
 const ITEM_WIDTH = width - 32; // Full width minus padding
 const ITEM_HEIGHT = ITEM_WIDTH * 1.4; // Make images 40% taller than width
+const AD_FREQUENCY = 6; // Показывать рекламу каждые 6 изображений
+
+type FeedAdSeparatorProps = {
+  leadingItem: ImageData;
+  index: number;
+};
+
+const FeedAdSeparator = ({ index }: FeedAdSeparatorProps) => {
+  const shouldShowAd = (index + 1) % AD_FREQUENCY === 0;
+  
+  if (!shouldShowAd) return null;
+  
+  return (
+    <View style={styles.imageContainer}>
+      <FeedAdBanner />
+    </View>
+  );
+};
 
 export default function FeedScreen() {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -171,6 +190,13 @@ export default function FeedScreen() {
     );
   }, []);
 
+  const renderSeparator = useCallback((props: { leadingItem: ImageData }) => (
+    <FeedAdSeparator
+      leadingItem={props.leadingItem}
+      index={images.indexOf(props.leadingItem)}
+    />
+  ), [images]);
+
   const ListFooterComponent = useCallback(() => {
     if (isLoadingMore) {
       return (
@@ -211,6 +237,7 @@ export default function FeedScreen() {
         ref={flatListRef}
         data={images}
         renderItem={renderImage}
+        ItemSeparatorComponent={renderSeparator}
         keyExtractor={(item) => item._id.toString()}
         contentContainerStyle={styles.imageList}
         onEndReached={loadMore}

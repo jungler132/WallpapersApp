@@ -1,76 +1,75 @@
-// Временно отключено для работы в Expo Go
-/*
 import React, { useState } from 'react';
-import { View, Platform } from 'react-native';
-import { BannerAd, BannerAdSize, TestIds, AdError } from 'react-native-google-mobile-ads';
+import { View, StyleSheet, Dimensions, Platform } from 'react-native';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 
-// Явно указываем тестовые ID для каждой платформы
-const TEST_IDS = {
-  android: 'ca-app-pub-3940256099942544/6300978111',
-  ios: 'ca-app-pub-3940256099942544/2934735716'
-};
+const { width } = Dimensions.get('window');
+const ITEM_WIDTH = width - 32; // Такая же ширина как у фото
+const ITEM_HEIGHT = ITEM_WIDTH * 1.4; // Такая же высота как у фото
 
-const PROD_IDS = {
-  android: 'ca-app-pub-6203993897795010/723787892',
-  ios: 'ca-app-pub-6203993897795010/723787892' // Замените на iOS ID когда будете публиковать в App Store
-};
-
-// Выбираем ID в зависимости от платформы и режима разработки
-const adUnitId = __DEV__ 
-  ? Platform.select({
-      android: TEST_IDS.android,
-      ios: TEST_IDS.ios,
-      default: TestIds.BANNER
-    })
-  : Platform.select({
-      android: PROD_IDS.android,
-      ios: PROD_IDS.ios,
-      default: ''
-    });
-
-export const AdBanner = () => {
-  const [isAdLoaded, setIsAdLoaded] = useState(false);
-
-  console.log('[AdBanner] Initializing with:', {
-    platform: Platform.OS,
-    isDev: __DEV__,
-    adUnitId,
-    isUsingTestId: __DEV__ || adUnitId === TEST_IDS.android || adUnitId === TEST_IDS.ios
-  });
+// Маленький баннер для нижней навигации
+export const SmallAdBanner = () => {
+  const [isLoaded, setIsLoaded] = useState(false);
 
   return (
-    <View style={{ 
-      height: isAdLoaded ? 'auto' : 0,
-      alignItems: 'center',
-      backgroundColor: '#000'
-    }}>
+    <View style={[styles.smallBannerContainer, !isLoaded && styles.hidden]}>
       <BannerAd
-        unitId={adUnitId}
-        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        unitId={TestIds.BANNER}
+        size={BannerAdSize.BANNER}
         requestOptions={{
           requestNonPersonalizedAdsOnly: true,
         }}
         onAdLoaded={() => {
-          console.log('[AdBanner] Ad loaded successfully');
-          setIsAdLoaded(true);
+          console.log('[SmallAdBanner] Ad loaded successfully');
+          setIsLoaded(true);
         }}
         onAdFailedToLoad={(error) => {
-          console.error('[AdBanner] Ad failed to load:', {
-            errorCode: error?.code,
-            errorMessage: error?.message,
-            error
-          });
+          console.error('[SmallAdBanner] Ad failed to load:', error);
         }}
       />
     </View>
   );
-}; 
-*/
+};
 
-// Временный пустой компонент для Expo Go
-import React from 'react';
-import { View } from 'react-native';
+// Большой баннер для ленты
+export const FeedAdBanner = () => {
+  const [isLoaded, setIsLoaded] = useState(false);
 
-export const AdBanner = () => {
-  return <View />; // Возвращаем пустой компонент
-}; 
+  return (
+    <View style={[styles.feedBannerContainer, !isLoaded && styles.hidden]}>
+      <BannerAd
+        unitId={TestIds.BANNER}
+        size={BannerAdSize.MEDIUM_RECTANGLE}
+        requestOptions={{
+          requestNonPersonalizedAdsOnly: true,
+        }}
+        onAdLoaded={() => {
+          console.log('[FeedAdBanner] Ad loaded successfully');
+          setIsLoaded(true);
+        }}
+        onAdFailedToLoad={(error) => {
+          console.error('[FeedAdBanner] Ad failed to load:', error);
+        }}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  smallBannerContainer: {
+    width: '100%',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  feedBannerContainer: {
+    width: ITEM_WIDTH,
+    height: ITEM_HEIGHT,
+    backgroundColor: '#2a2a2a',
+    borderRadius: 12,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hidden: {
+    opacity: 0,
+  }
+});
