@@ -8,6 +8,7 @@ import { router, Stack } from 'expo-router';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { SearchAdBanner } from '../components/SearchAdBanner';
 
 const { width } = Dimensions.get('window');
 // Увеличиваем общий отступ до 48px (16px слева + 16px между + 16px справа)
@@ -627,6 +628,8 @@ export default function SearchScreen() {
               </TouchableOpacity>
             ) : null}
           </View>
+
+          <SearchAdBanner />
 
           {searchMode === 'arts' && (
             <>

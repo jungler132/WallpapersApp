@@ -19,11 +19,19 @@ const COLORS = {
   overlay: 'rgba(0, 0, 0, 0.5)',
 };
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 type FilterType = 'top' | 'seasonal' | 'ongoing' | 'finished' | 'upcoming';
 const SEASONS: AnimeSeason[] = ['winter', 'spring', 'summer', 'fall'];
 const CURRENT_YEAR = new Date().getFullYear();
+
+interface ApiResponse {
+  data: Anime[];
+  pagination?: {
+    has_next_page: boolean;
+    current_page: number;
+  };
+}
 
 export default function AnimeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -210,13 +218,14 @@ export default function AnimeScreen() {
               )}
             </View>
             {item.trailer?.youtube_id && (
-              <TouchableOpacity 
-                style={styles.trailerButton}
-                onPress={() => {
-                  WebBrowser.openBrowserAsync(`https://www.youtube.com/watch?v=${item.trailer.youtube_id}`);
-                }}
+              <TouchableOpacity
+                onPress={() => WebBrowser.openBrowserAsync(`https://www.youtube.com/watch?v=${item.trailer.youtube_id}`)}
               >
-                <Ionicons name="logo-youtube" size={16} color="#FF0000" />
+                <Image 
+                  source={require('../../assets/images/youtube-logo.png')} 
+                  style={{ width: 35, height: 35 }}
+                  resizeMode="contain"
+                />
               </TouchableOpacity>
             )}
           </View>
@@ -293,13 +302,19 @@ export default function AnimeScreen() {
     }
   };
 
-  if (isLoading() && !getAnimeData().length) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
-      </View>
-    );
-  }
+  const animeData = getAnimeData();
+  const loading = isLoading();
+  const isEmpty = animeData.length === 0;
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyStateContainer}>
+      <ExpoImage
+        source={require('../../assets/placeholder/image-placeholder.png')}
+        style={styles.emptyStateImage}
+        contentFit="contain"
+      />
+    </View>
+  );
 
   return (
     <>
@@ -439,22 +454,30 @@ export default function AnimeScreen() {
           </View>
         )}
 
-        <FlatList
-          data={getAnimeData()}
-          renderItem={renderAnimeItem}
-          keyExtractor={(item) => item.mal_id.toString()}
-          numColumns={2}
-          contentContainerStyle={styles.listContainer}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={() => (
-            isLoading() ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.accent} />
-              </View>
-            ) : null
-          )}
-        />
+        {selectedFilter === 'seasonal' && renderSeasonalHeader()}
+
+        {isEmpty ? (
+          renderEmptyState()
+        ) : (
+          <FlatList
+            data={animeData}
+            renderItem={renderAnimeItem}
+            keyExtractor={(item) => item.mal_id.toString()}
+            numColumns={2}
+            contentContainerStyle={styles.listContainer}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={() =>
+              loading ? (
+                <ActivityIndicator
+                  size="large"
+                  color={COLORS.accent}
+                  style={styles.loader}
+                />
+              ) : null
+            }
+          />
+        )}
       </View>
     </>
   );
@@ -738,7 +761,7 @@ const styles = StyleSheet.create({
   },
   trailerButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 6,
     alignItems: 'center',
     justifyContent: 'center',
@@ -758,5 +781,24 @@ const styles = StyleSheet.create({
   genreText: {
     fontSize: 10,
     color: COLORS.text,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyStateImage: {
+    width: width * 0.7,
+    height: width * 0.7,
+    marginBottom: 24,
+  },
+  emptyStateText: {
+    color: COLORS.textSecondary,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  loader: {
+    padding: 20,
   },
 }); 

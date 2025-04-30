@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
-import { useAnimeDetails } from '../hooks/useAnime';
+import { useAnimeDetails, useAnimeCharacters } from '../hooks/useAnime';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
+import { AnimeCharactersPreview } from '../components/AnimeCharactersPreview';
 
 const COLORS = {
   primary: '#121212',
@@ -15,11 +16,17 @@ const COLORS = {
   cardBg: '#1A1A1A',
 };
 
+interface Genre {
+  name: string;
+  mal_id: number;
+}
+
 export default function AnimeDetailsScreen() {
   const { id } = useLocalSearchParams();
-  const { data: anime, isLoading, isError } = useAnimeDetails(Number(id));
+  const { data: anime, isLoading: isLoadingAnime, isError: isAnimeError } = useAnimeDetails(Number(id));
+  const { data: charactersData, isLoading: isLoadingCharacters } = useAnimeCharacters(Number(id));
 
-  if (isLoading) {
+  if (isLoadingAnime || isLoadingCharacters) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.accent} />
@@ -27,7 +34,7 @@ export default function AnimeDetailsScreen() {
     );
   }
 
-  if (isError || !anime) {
+  if (isAnimeError || !anime) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Failed to load anime details</Text>
@@ -57,11 +64,13 @@ export default function AnimeDetailsScreen() {
           {anime.trailer?.youtube_id && (
             <TouchableOpacity
               style={styles.youtubeButton}
-              onPress={() => {
-                WebBrowser.openBrowserAsync(`https://www.youtube.com/watch?v=${anime.trailer.youtube_id}`);
-              }}
+              onPress={() => WebBrowser.openBrowserAsync(`https://www.youtube.com/watch?v=${anime.trailer.youtube_id}`)}
             >
-              <Ionicons name="logo-youtube" size={24} color="#FF0000" />
+              <Image 
+                source={require('../../assets/images/youtube-logo.png')} 
+                style={{ width: 50, height: 50 }}
+                resizeMode="contain"
+              />
             </TouchableOpacity>
           )}
           <View style={styles.overlay}>
@@ -112,20 +121,22 @@ export default function AnimeDetailsScreen() {
                 <Text style={styles.infoValue}>{anime.studios[0].name}</Text>
               </View>
             )}
-            <TouchableOpacity
-              style={styles.charactersButton}
-              onPress={() => router.push(`/anime/characters/${id}`)}
-            >
-              <Ionicons name="people" size={24} color={COLORS.text} />
-              <Text style={styles.charactersButtonText}>View Characters</Text>
-            </TouchableOpacity>
           </View>
+
+          {charactersData?.data && charactersData.data.length > 0 && (
+            <View style={styles.charactersSection}>
+              <AnimeCharactersPreview
+                characters={charactersData.data}
+                animeId={anime.mal_id}
+              />
+            </View>
+          )}
 
           {anime.genres && anime.genres.length > 0 && (
             <View style={styles.genresContainer}>
               <Text style={styles.sectionTitle}>Genres</Text>
               <View style={styles.genresList}>
-                {anime.genres.map((genre, index) => (
+                {anime.genres.map((genre: Genre, index: number) => (
                   <View key={index} style={styles.genreTag}>
                     <Text style={styles.genreText}>{genre.name}</Text>
                   </View>
@@ -277,10 +288,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 12,
-    width: 44,
-    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
@@ -306,5 +313,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     marginLeft: 8,
+  },
+  charactersSection: {
+    marginBottom: 24,
   },
 }); 
