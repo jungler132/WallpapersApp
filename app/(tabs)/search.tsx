@@ -428,46 +428,6 @@ export default function SearchScreen() {
   );
 
   const { 
-    data: artsData,
-    fetchNextPage: fetchNextArtsPage,
-    hasNextPage: hasNextArtsPage,
-    isFetchingNextPage: isFetchingNextArtsPage
-  } = useInfiniteQuery<{ images: ImageData[] }>({
-    queryKey: ['artsSearch', selectedTags],
-    queryFn: async ({ pageParam = 1 }) => {
-      const images = await getRandomImages(selectedTags);
-      return { images };
-    },
-    getNextPageParam: () => undefined,
-    enabled: searchMode === 'arts' && selectedTags.length > 0,
-    initialPageParam: 1,
-  });
-
-  // Добавляем дебаунс для поиска персонажей
-  useEffect(() => {
-    if (!isMounted.current || searchMode !== 'characters') return;
-
-    if (characterSearchTimeout) {
-      clearTimeout(characterSearchTimeout);
-    }
-
-    const timeout = setTimeout(() => {
-      if (isMounted.current && characterSearch.trim().length >= 2) {
-        // Принудительно вызываем рефетч для обновления данных
-        refetch();
-      }
-    }, 300);
-
-    setCharacterSearchTimeout(timeout);
-
-    return () => {
-      if (characterSearchTimeout) {
-        clearTimeout(characterSearchTimeout);
-      }
-    };
-  }, [characterSearch, searchMode]);
-
-  const { 
     data: charactersData, 
     fetchNextPage: fetchNextCharacters, 
     hasNextPage: hasNextCharactersPage, 
@@ -492,6 +452,59 @@ export default function SearchScreen() {
     enabled: searchMode === 'characters',
     initialPageParam: 1,
   });
+
+  const loadMore = () => {
+    if (searchMode === 'arts') {
+      handleLoadMore();
+    } else {
+      if (hasNextCharactersPage && !isFetchingNextCharactersPage) {
+        fetchNextCharacters();
+      }
+    }
+  };
+
+  const getSearchData = (): SearchData[] => {
+    if (searchMode === 'arts') {
+      return images;
+    } else {
+      const filteredData = charactersData?.pages.flatMap(page => 
+        page.data.filter(character => {
+          console.log('Checking character:', character.name);
+          console.log('Image URL:', character.images?.jpg?.image_url);
+          
+          // Проверяем URL изображения на наличие MAL-логотипа или иконки
+          const isMALLogo = character.images?.jpg?.image_url?.toLowerCase().includes('mal') ||
+                           character.images?.jpg?.image_url?.toLowerCase().includes('questionmark') ||
+                           character.images?.jpg?.image_url?.toLowerCase().includes('default') ||
+                           character.images?.jpg?.image_url?.toLowerCase().includes('placeholder') ||
+                           character.images?.jpg?.image_url?.includes('apple-touch-icon-256.png');
+          
+          console.log('Is MAL logo:', isMALLogo);
+          
+          // Проверяем наличие дополнительных изображений
+          const hasPictures = Array.isArray(character.pictures) && character.pictures.length > 0;
+          console.log('Has pictures:', hasPictures);
+          
+          // Проверяем наличие описания
+          const hasAbout = character.about && character.about.trim().length > 0;
+          console.log('Has about:', hasAbout);
+          
+          // Проверяем имя
+          const hasName = character.name && character.name.trim().length > 0;
+          console.log('Has name:', hasName);
+          
+          // Теперь разрешаем отображение даже с MAL иконкой, так как мы заменим ее на свою
+          const shouldInclude = hasName && (hasPictures || hasAbout);
+          console.log('Should include:', shouldInclude);
+          
+          return shouldInclude;
+        })
+      ) ?? [];
+      
+      console.log('Filtered data length:', filteredData.length);
+      return filteredData as SearchData[];
+    }
+  };
 
   const renderCharacterItem = useCallback(({ item }: { item: Character }) => {
     const isPlaceholder = item.images?.jpg?.image_url?.includes('apple-touch-icon-256.png');
@@ -548,61 +561,6 @@ export default function SearchScreen() {
       </TouchableOpacity>
     );
   }, []);
-
-  const loadMore = () => {
-    if (searchMode === 'arts') {
-      if (hasNextArtsPage && !isFetchingNextArtsPage) {
-        fetchNextArtsPage();
-      }
-    } else {
-      if (hasNextCharactersPage && !isFetchingNextCharactersPage) {
-        fetchNextCharacters();
-      }
-    }
-  };
-
-  const getSearchData = (): SearchData[] => {
-    if (searchMode === 'arts') {
-      return artsData?.pages.flatMap((page: { images: ImageData[] }) => page.images) ?? [];
-    } else {
-      const filteredData = charactersData?.pages.flatMap(page => 
-        page.data.filter(character => {
-          console.log('Checking character:', character.name);
-          console.log('Image URL:', character.images?.jpg?.image_url);
-          
-          // Проверяем URL изображения на наличие MAL-логотипа или иконки
-          const isMALLogo = character.images?.jpg?.image_url?.toLowerCase().includes('mal') ||
-                           character.images?.jpg?.image_url?.toLowerCase().includes('questionmark') ||
-                           character.images?.jpg?.image_url?.toLowerCase().includes('default') ||
-                           character.images?.jpg?.image_url?.toLowerCase().includes('placeholder') ||
-                           character.images?.jpg?.image_url?.includes('apple-touch-icon-256.png');
-          
-          console.log('Is MAL logo:', isMALLogo);
-          
-          // Проверяем наличие дополнительных изображений
-          const hasPictures = Array.isArray(character.pictures) && character.pictures.length > 0;
-          console.log('Has pictures:', hasPictures);
-          
-          // Проверяем наличие описания
-          const hasAbout = character.about && character.about.trim().length > 0;
-          console.log('Has about:', hasAbout);
-          
-          // Проверяем имя
-          const hasName = character.name && character.name.trim().length > 0;
-          console.log('Has name:', hasName);
-          
-          // Теперь разрешаем отображение даже с MAL иконкой, так как мы заменим ее на свою
-          const shouldInclude = hasName && (hasPictures || hasAbout);
-          console.log('Should include:', shouldInclude);
-          
-          return shouldInclude;
-        })
-      ) ?? [];
-      
-      console.log('Filtered data length:', filteredData.length);
-      return filteredData as SearchData[];
-    }
-  };
 
   const renderItem = ({ item }: { item: SearchData }) => {
     if (searchMode === 'arts') {
@@ -747,8 +705,8 @@ export default function SearchScreen() {
                 scrollEventThrottle={16}
                 ListEmptyComponent={EmptyState}
                 ListFooterComponent={() => (
-                  ((searchMode === 'arts' && isFetchingNextArtsPage) ||
-                   (searchMode === 'characters' && isFetchingNextCharactersPage)) ? (
+                  (searchMode === 'arts' && isLoadingMore) || 
+                  (searchMode === 'characters' && isFetchingNextCharactersPage) ? (
                     <View style={styles.loadingContainer}>
                       <ActivityIndicator size="large" color={COLORS.accent} />
                     </View>
