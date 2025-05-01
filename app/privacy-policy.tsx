@@ -26,8 +26,9 @@ export default function PrivacyPolicyScreen() {
       >
         <Text style={styles.sectionTitle}>Privacy Policy</Text>
         <Text style={styles.text}>
-          Last updated: {new Date().toLocaleDateString()}
-          {'\n\n'}This Privacy Policy describes how Anime Wallpapers ("we", "us", or "our") handles your information when you use our mobile application.
+          Last updated: 2024-04-30
+          {'\n\n'}This Privacy Policy describes how OtakuWalls ("we", "us", or "our") handles your information when you use our mobile application.
+          {'\n\n'}You can also view our full Privacy Policy at: https://jungler132.github.io/otakuwalls-privacy-policy/
         </Text>
 
         <Text style={styles.sectionTitle}>1. Information We Collect</Text>
