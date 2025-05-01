@@ -8,7 +8,7 @@ import * as MediaLibrary from 'expo-media-library';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { useFavorites } from '../../../hooks/useFavorites';
-import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+// import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 
 const COLORS = {
   primary: '#121212',
@@ -234,14 +234,12 @@ export default function CharacterDetailsScreen() {
           </View>
         </View>
 
-        <View style={styles.adContainer}>
-          <BannerAd
-            unitId="ca-app-pub-3940256099942544/6300978111"
-            size={BannerAdSize.MEDIUM_RECTANGLE}
-            onAdLoaded={() => console.log('Character ad loaded')}
-            onAdFailedToLoad={(error) => console.error('Character ad failed to load:', error)}
-          />
-        </View>
+        {/* <BannerAd
+          unitId="ca-app-pub-3940256099942544/6300978111"
+          size={BannerAdSize.MEDIUM_RECTANGLE}
+          onAdLoaded={() => console.log('Character ad loaded')}
+          onAdFailedToLoad={(error) => console.error('Character ad failed to load:', error)}
+        /> */}
 
         {character.data.nicknames.length > 0 && (
           <View style={styles.section}>

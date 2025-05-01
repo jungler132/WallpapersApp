@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Dimensions, Platform } from 'react-native';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+// import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = width - 32; // Такая же ширина как у фото
@@ -12,7 +12,7 @@ export const SmallAdBanner = () => {
 
   return (
     <View style={[styles.smallBannerContainer, !isLoaded && styles.hidden]}>
-      <BannerAd
+      {/* <BannerAd
         unitId={TestIds.BANNER}
         size={BannerAdSize.BANNER}
         requestOptions={{
@@ -25,7 +25,7 @@ export const SmallAdBanner = () => {
         onAdFailedToLoad={(error) => {
           console.error('[SmallAdBanner] Ad failed to load:', error);
         }}
-      />
+      /> */}
     </View>
   );
 };
@@ -36,7 +36,7 @@ export const FeedAdBanner = () => {
 
   return (
     <View style={[styles.feedBannerContainer, !isLoaded && styles.hidden]}>
-      <BannerAd
+      {/* <BannerAd
         unitId={TestIds.BANNER}
         size={BannerAdSize.MEDIUM_RECTANGLE}
         requestOptions={{
@@ -49,7 +49,7 @@ export const FeedAdBanner = () => {
         onAdFailedToLoad={(error) => {
           console.error('[FeedAdBanner] Ad failed to load:', error);
         }}
-      />
+      /> */}
     </View>
   );
 };

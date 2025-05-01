@@ -38,7 +38,10 @@
             "useFrameworks": "static"
           },
           "android": {
-            "extraProguardRules": "-keep class com.google.android.gms.internal.consent_sdk.** { *; }"
+            "extraProguardRules": "-keep class com.google.android.gms.internal.consent_sdk.** { *; }",
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
           }
         }
       ],
@@ -70,6 +73,11 @@
       "image": "./assets/images/otakuwalls_logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#1a1a1a"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "80383567-79e4-4c1a-a9f9-65991e4d3789"
+      }
     }
   }
 }
