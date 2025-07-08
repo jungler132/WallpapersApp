@@ -26,27 +26,16 @@ export default function AnimeDetailsScreen() {
   const { data: anime, isLoading: isLoadingAnime, isError: isAnimeError } = useAnimeDetails(Number(id));
   const { data: charactersData, isLoading: isLoadingCharacters } = useAnimeCharacters(Number(id));
 
-  if (isLoadingAnime || isLoadingCharacters) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
-      </View>
-    );
-  }
-
-  if (isAnimeError || !anime) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Failed to load anime details</Text>
-      </View>
-    );
-  }
+  // Заголовок всегда корректный
+  const headerTitle = isLoadingAnime || isLoadingCharacters || isAnimeError || !anime
+    ? 'Anime'
+    : anime.title;
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: anime.title,
+          title: headerTitle,
           headerStyle: {
             backgroundColor: COLORS.primary,
           },
@@ -54,105 +43,115 @@ export default function AnimeDetailsScreen() {
           headerShadowVisible: false,
         }}
       />
-      <ScrollView style={styles.container}>
-        <View style={styles.header}>
-          <Image
-            source={{ uri: anime.images.jpg.large_image_url }}
-            style={styles.coverImage}
-            resizeMode="cover"
-          />
-          {anime.trailer?.youtube_id && (
-            <TouchableOpacity
-              style={styles.youtubeButton}
-              onPress={() => WebBrowser.openBrowserAsync(`https://www.youtube.com/watch?v=${anime.trailer.youtube_id}`)}
-            >
-              <Image 
-                source={require('../../assets/images/youtube-logo.png')} 
-                style={{ width: 50, height: 50 }}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-          )}
-          <View style={styles.overlay}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.title}>{anime.title}</Text>
-              {anime.title_japanese && (
-                <Text style={styles.japaneseTitle}>{anime.title_japanese}</Text>
+      {isLoadingAnime || isLoadingCharacters ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.accent} />
+        </View>
+      ) : isAnimeError || !anime ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Failed to load anime details</Text>
+        </View>
+      ) : (
+        <ScrollView style={styles.container}>
+          <View style={styles.header}>
+            <Image
+              source={{ uri: anime.images.jpg.large_image_url }}
+              style={styles.coverImage}
+              resizeMode="cover"
+            />
+            {anime.trailer?.youtube_id && (
+              <TouchableOpacity
+                style={styles.youtubeButton}
+                onPress={() => WebBrowser.openBrowserAsync(`https://www.youtube.com/watch?v=${anime.trailer.youtube_id}`)}
+              >
+                <Image 
+                  source={require('../../assets/images/youtube-logo.png')} 
+                  style={{ width: 50, height: 50 }}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            )}
+            <View style={styles.overlay}>
+              <View style={styles.titleContainer}>
+                <Text style={styles.title}>{anime.title}</Text>
+                {anime.title_japanese && (
+                  <Text style={styles.japaneseTitle}>{anime.title_japanese}</Text>
+                )}
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.content}>
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Ionicons name="star" size={20} color={COLORS.accent} />
+                <Text style={styles.statValue}>{anime.score || 'N/A'}</Text>
+                <Text style={styles.statLabel}>Score</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Ionicons name="people" size={20} color={COLORS.accent} />
+                <Text style={styles.statValue}>{anime.members?.toLocaleString()}</Text>
+                <Text style={styles.statLabel}>Members</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Ionicons name="heart" size={20} color={COLORS.accent} />
+                <Text style={styles.statValue}>{anime.favorites?.toLocaleString()}</Text>
+                <Text style={styles.statLabel}>Favorites</Text>
+              </View>
+            </View>
+
+            <View style={styles.infoSection}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Type</Text>
+                <Text style={styles.infoValue}>{anime.type}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Episodes</Text>
+                <Text style={styles.infoValue}>{anime.episodes || 'Unknown'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Status</Text>
+                <Text style={styles.infoValue}>{anime.status}</Text>
+              </View>
+              {anime.studios && anime.studios.length > 0 && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Studio</Text>
+                  <Text style={styles.infoValue}>{anime.studios[0].name}</Text>
+                </View>
               )}
             </View>
-          </View>
-        </View>
 
-        <View style={styles.content}>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Ionicons name="star" size={20} color={COLORS.accent} />
-              <Text style={styles.statValue}>{anime.score || 'N/A'}</Text>
-              <Text style={styles.statLabel}>Score</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="people" size={20} color={COLORS.accent} />
-              <Text style={styles.statValue}>{anime.members?.toLocaleString()}</Text>
-              <Text style={styles.statLabel}>Members</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="heart" size={20} color={COLORS.accent} />
-              <Text style={styles.statValue}>{anime.favorites?.toLocaleString()}</Text>
-              <Text style={styles.statLabel}>Favorites</Text>
-            </View>
-          </View>
+            {charactersData?.data && charactersData.data.length > 0 && (
+              <View style={styles.charactersSection}>
+                <AnimeCharactersPreview
+                  characters={charactersData.data}
+                  animeId={anime.mal_id}
+                />
+              </View>
+            )}
 
-          <View style={styles.infoSection}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Type</Text>
-              <Text style={styles.infoValue}>{anime.type}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Episodes</Text>
-              <Text style={styles.infoValue}>{anime.episodes || 'Unknown'}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Status</Text>
-              <Text style={styles.infoValue}>{anime.status}</Text>
-            </View>
-            {anime.studios && anime.studios.length > 0 && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Studio</Text>
-                <Text style={styles.infoValue}>{anime.studios[0].name}</Text>
+            {anime.genres && anime.genres.length > 0 && (
+              <View style={styles.genresContainer}>
+                <Text style={styles.sectionTitle}>Genres</Text>
+                <View style={styles.genresList}>
+                  {anime.genres.map((genre: Genre, index: number) => (
+                    <View key={index} style={styles.genreTag}>
+                      <Text style={styles.genreText}>{genre.name}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {anime.synopsis && (
+              <View style={styles.synopsisContainer}>
+                <Text style={styles.sectionTitle}>Synopsis</Text>
+                <Text style={styles.synopsis}>{anime.synopsis}</Text>
               </View>
             )}
           </View>
-
-          {charactersData?.data && charactersData.data.length > 0 && (
-            <View style={styles.charactersSection}>
-              <AnimeCharactersPreview
-                characters={charactersData.data}
-                animeId={anime.mal_id}
-              />
-            </View>
-          )}
-
-          {anime.genres && anime.genres.length > 0 && (
-            <View style={styles.genresContainer}>
-              <Text style={styles.sectionTitle}>Genres</Text>
-              <View style={styles.genresList}>
-                {anime.genres.map((genre: Genre, index: number) => (
-                  <View key={index} style={styles.genreTag}>
-                    <Text style={styles.genreText}>{genre.name}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {anime.synopsis && (
-            <View style={styles.synopsisContainer}>
-              <Text style={styles.sectionTitle}>Synopsis</Text>
-              <Text style={styles.synopsis}>{anime.synopsis}</Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+        </ScrollView>
+      )}
     </>
   );
 }

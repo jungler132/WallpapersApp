@@ -164,32 +164,19 @@ export default function CharacterDetailsScreen() {
     }
   };
 
-  if (isLoadingCharacter) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
-      </View>
-    );
-  }
-
-  if (isErrorCharacter || !character) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Failed to load character details</Text>
-      </View>
-    );
-  }
+  // Заголовок всегда корректный
+  const headerTitle = isLoadingCharacter || isErrorCharacter || !character ? 'Character' : character.data.name;
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: character.data.name,
+          title: headerTitle,
           headerStyle: {
             backgroundColor: COLORS.primary,
           },
           headerTintColor: COLORS.text,
-          headerRight: () => (
+          headerRight: !isLoadingCharacter && !isErrorCharacter && character ? () => (
             <TouchableOpacity
               onPress={async () => {
                 const success = await toggleFavoriteCharacter(characterId, character?.data ? {
@@ -216,119 +203,130 @@ export default function CharacterDetailsScreen() {
                 color={isFavorite ? COLORS.accent : COLORS.text}
               />
             </TouchableOpacity>
-          ),
+          ) : undefined,
+          headerShadowVisible: false,
         }}
       />
-      <ScrollView style={styles.container}>
-        <View style={styles.header}>
-          <Image
-            source={{ uri: character.data.images.jpg.image_url }}
-            style={styles.mainImage}
-            resizeMode="cover"
-          />
-          <View style={styles.nameContainer}>
-            <Text style={styles.name}>{character.data.name}</Text>
-            {character.data.name_kanji && (
-              <Text style={styles.nameKanji}>{character.data.name_kanji}</Text>
-            )}
-          </View>
+      {isLoadingCharacter ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.accent} />
         </View>
-
-        <View style={styles.adContainer}>
-          <BannerAd
-            unitId="ca-app-pub-6203993897795010/7237871892"
-            size={BannerAdSize.MEDIUM_RECTANGLE}
-            onAdLoaded={() => console.log('Character ad loaded')}
-            onAdFailedToLoad={(error) => console.error('Character ad failed to load:', error)}
-          />
+      ) : isErrorCharacter || !character ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Failed to load character details</Text>
         </View>
-
-        {character.data.nicknames.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Nicknames</Text>
-            <View style={styles.nicknamesList}>
-              {character.data.nicknames.map((nickname, index) => (
-                <View key={index} style={styles.nicknameTag}>
-                  <Text style={styles.nicknameText}>{nickname}</Text>
-                </View>
-              ))}
+      ) : (
+        <ScrollView style={styles.container}>
+          <View style={styles.header}>
+            <Image
+              source={{ uri: character.data.images.jpg.image_url }}
+              style={styles.mainImage}
+              resizeMode="cover"
+            />
+            <View style={styles.nameContainer}>
+              <Text style={styles.name}>{character.data.name}</Text>
+              {character.data.name_kanji && (
+                <Text style={styles.nameKanji}>{character.data.name_kanji}</Text>
+              )}
             </View>
           </View>
-        )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Favorites</Text>
-          <Text style={styles.favoritesCount}>{character.data.favorites}</Text>
-        </View>
-
-        {character.data.about && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>About</Text>
-            <Text style={styles.about}>{character.data.about}</Text>
-          </View>
-        )}
-
-        {character.data.anime && character.data.anime.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Appears In</Text>
-            {character.data.anime.map((appearance, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.animeItem}
-                activeOpacity={0.7}
-                onPress={() => {
-                  router.push({
-                    pathname: '/anime/[id]',
-                    params: { id: appearance.anime.mal_id }
-                  });
-                }}
-              >
-                <Text style={styles.animeTitle}>{appearance.anime.title}</Text>
-                <Text style={styles.animeRole}>{appearance.role}</Text>
-                <MaterialCommunityIcons 
-                  name="chevron-right" 
-                  size={20} 
-                  color={COLORS.textSecondary}
-                  style={styles.animeArrow}
-                />
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {allImages.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Gallery</Text>
-            <FlatList
-              data={allImages}
-              numColumns={2}
-              renderItem={({ item, index }) => (
-                <View style={styles.imageContainer}>
-                  <Image
-                    source={{ uri: item.image_url }}
-                    style={styles.galleryImage}
-                    resizeMode="cover"
-                  />
-                  <TouchableOpacity
-                    style={styles.downloadButton}
-                    onPress={() => downloadImage(item.image_url, index)}
-                    disabled={downloadingIndex !== null}
-                  >
-                    {downloadingIndex === index ? (
-                      <ActivityIndicator color={COLORS.text} size="small" />
-                    ) : (
-                      <Ionicons name="download-outline" size={24} color={COLORS.text} />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              )}
-              keyExtractor={(item, index) => index.toString()}
-              scrollEnabled={false}
-              contentContainerStyle={styles.galleryContainer}
+          <View style={styles.adContainer}>
+            <BannerAd
+              unitId="ca-app-pub-6203993897795010/7237871892"
+              size={BannerAdSize.MEDIUM_RECTANGLE}
+              onAdLoaded={() => console.log('Character ad loaded')}
+              onAdFailedToLoad={(error) => console.error('Character ad failed to load:', error)}
             />
           </View>
-        )}
-      </ScrollView>
+
+          {character.data.nicknames.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Nicknames</Text>
+              <View style={styles.nicknamesList}>
+                {character.data.nicknames.map((nickname, index) => (
+                  <View key={index} style={styles.nicknameTag}>
+                    <Text style={styles.nicknameText}>{nickname}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Favorites</Text>
+            <Text style={styles.favoritesCount}>{character.data.favorites}</Text>
+          </View>
+
+          {character.data.about && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>About</Text>
+              <Text style={styles.about}>{character.data.about}</Text>
+            </View>
+          )}
+
+          {character.data.anime && character.data.anime.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Appears In</Text>
+              {character.data.anime.map((appearance, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.animeItem}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/anime/[id]',
+                      params: { id: appearance.anime.mal_id }
+                    });
+                  }}
+                >
+                  <Text style={styles.animeTitle}>{appearance.anime.title}</Text>
+                  <Text style={styles.animeRole}>{appearance.role}</Text>
+                  <MaterialCommunityIcons 
+                    name="chevron-right" 
+                    size={20} 
+                    color={COLORS.textSecondary}
+                    style={styles.animeArrow}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {allImages.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Gallery</Text>
+              <FlatList
+                data={allImages}
+                numColumns={2}
+                renderItem={({ item, index }) => (
+                  <View style={styles.imageContainer}>
+                    <Image
+                      source={{ uri: item.image_url }}
+                      style={styles.galleryImage}
+                      resizeMode="cover"
+                    />
+                    <TouchableOpacity
+                      style={styles.downloadButton}
+                      onPress={() => downloadImage(item.image_url, index)}
+                      disabled={downloadingIndex !== null}
+                    >
+                      {downloadingIndex === index ? (
+                        <ActivityIndicator color={COLORS.text} size="small" />
+                      ) : (
+                        <Ionicons name="download-outline" size={24} color={COLORS.text} />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
+                keyExtractor={(item, index) => index.toString()}
+                scrollEnabled={false}
+                contentContainerStyle={styles.galleryContainer}
+              />
+            </View>
+          )}
+        </ScrollView>
+      )}
       <Toast />
     </>
   );

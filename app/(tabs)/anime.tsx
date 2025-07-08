@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { Video } from 'expo-av';
 import * as WebBrowser from 'expo-web-browser';
+import { FeedAdBanner } from '../components/AdBanner';
 
 const COLORS = {
   primary: '#121212',
@@ -252,12 +253,6 @@ export default function AnimeScreen() {
                 <Text style={styles.statText}>{item.episodes} eps</Text>
               </View>
             )}
-            {item.duration && (
-              <View style={styles.statItem}>
-                <Ionicons name="time-outline" size={14} color={COLORS.textSecondary} />
-                <Text style={styles.statText}>{item.duration.split(' ')[0]}</Text>
-              </View>
-            )}
           </View>
 
           {item.source && (
@@ -282,6 +277,57 @@ export default function AnimeScreen() {
     </TouchableOpacity>
   ), []);
 
+  const animeData = getAnimeData();
+  // Группируем аниме по 2 и вставляем баннеры как отдельные строки
+  const AD_FREQUENCY = 6;
+  type AnimeRowOrAd = { type: 'ad'; key: string } | { type: 'row'; items: Anime[]; key: string };
+  const buildAnimeRowsWithAds = (animeList: Anime[]): AnimeRowOrAd[] => {
+    const result: AnimeRowOrAd[] = [];
+    let row: Anime[] = [];
+    let animeCount = 0;
+    animeList.forEach((item, idx) => {
+      if (animeCount > 0 && animeCount % AD_FREQUENCY === 0) {
+        if (row.length > 0) {
+          result.push({ type: 'row', items: row, key: `row-${idx}` });
+          row = [];
+        }
+        result.push({ type: 'ad', key: `ad-${idx}` });
+      }
+      row.push(item);
+      animeCount++;
+      if (row.length === 2) {
+        result.push({ type: 'row', items: row, key: `row-${idx}` });
+        row = [];
+      }
+    });
+    if (row.length > 0) {
+      result.push({ type: 'row', items: row, key: `row-last` });
+    }
+    return result;
+  };
+  const animeRowsWithAds = buildAnimeRowsWithAds(animeData);
+
+  const renderAnimeRowOrAd = useCallback(({ item }: { item: AnimeRowOrAd }) => {
+    if (item.type === 'ad') {
+      return (
+        <View style={{ width: '100%', alignItems: 'center', marginVertical: 8 }}>
+          <FeedAdBanner />
+        </View>
+      );
+    }
+    // item.type === 'row'
+    return (
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+        {item.items.map((anime, idx) => (
+          <View key={anime.mal_id} style={{ flex: 1, marginRight: idx === 0 && item.items.length === 2 ? 8 : 0 }}>
+            {renderAnimeItem({ item: anime })}
+          </View>
+        ))}
+        {item.items.length === 1 && <View style={{ flex: 1, marginLeft: 8 }} />}
+      </View>
+    );
+  }, [renderAnimeItem]);
+
   const renderSeasonalHeader = () => (
     <View style={styles.seasonalHeader}>
       <Text style={styles.seasonalTitle}>
@@ -302,7 +348,6 @@ export default function AnimeScreen() {
     }
   };
 
-  const animeData = getAnimeData();
   const loading = isLoading();
   const isEmpty = animeData.length === 0;
 
@@ -460,10 +505,10 @@ export default function AnimeScreen() {
           renderEmptyState()
         ) : (
           <FlatList
-            data={animeData}
-            renderItem={renderAnimeItem}
-            keyExtractor={(item) => item.mal_id.toString()}
-            numColumns={2}
+            data={animeRowsWithAds}
+            renderItem={renderAnimeRowOrAd}
+            keyExtractor={(item: AnimeRowOrAd) => item.key}
+            numColumns={1}
             contentContainerStyle={styles.listContainer}
             onEndReached={loadMore}
             onEndReachedThreshold={0.5}
@@ -721,7 +766,10 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   infoContainer: {
-    padding: 12,
+    paddingLeft: 12,
+    paddingRight: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
@@ -747,6 +795,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  statItemLast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginRight: 8,
   },
   statText: {
     fontSize: 12,
