@@ -236,7 +236,7 @@ export default function CharacterDetailsScreen() {
 
         <View style={styles.adContainer}>
           <BannerAd
-            unitId="ca-app-pub-3940256099942544/6300978111"
+            unitId="ca-app-pub-6203993897795010/7237871892"
             size={BannerAdSize.MEDIUM_RECTANGLE}
             onAdLoaded={() => console.log('Character ad loaded')}
             onAdFailedToLoad={(error) => console.error('Character ad failed to load:', error)}

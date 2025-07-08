@@ -13,7 +13,7 @@ export const SmallAdBanner = () => {
   return (
     <View style={[styles.smallBannerContainer, !isLoaded && styles.hidden]}>
       <BannerAd
-        unitId={TestIds.BANNER}
+        unitId="ca-app-pub-6203993897795010/7237871892"
         size={BannerAdSize.BANNER}
         requestOptions={{
           requestNonPersonalizedAdsOnly: true,
@@ -37,7 +37,7 @@ export const FeedAdBanner = () => {
   return (
     <View style={[styles.feedBannerContainer, !isLoaded && styles.hidden]}>
       <BannerAd
-        unitId={TestIds.BANNER}
+        unitId="ca-app-pub-6203993897795010/7237871892"
         size={BannerAdSize.MEDIUM_RECTANGLE}
         requestOptions={{
           requestNonPersonalizedAdsOnly: true,

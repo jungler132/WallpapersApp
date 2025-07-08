@@ -584,6 +584,7 @@ const styles = StyleSheet.create({
   },
   seasonalHeader: {
     marginBottom: 16,
+    marginLeft: 16,
   },
   seasonalTitle: {
     color: COLORS.text,

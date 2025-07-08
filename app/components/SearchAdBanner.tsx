@@ -6,7 +6,7 @@ export const SearchAdBanner = () => {
   return (
     <View style={styles.container}>
       <BannerAd
-        unitId="ca-app-pub-3940256099942544/6300978111"
+        unitId="ca-app-pub-6203993897795010/7237871892"
         size={BannerAdSize.BANNER}
         onAdLoaded={() => console.log('Search ad loaded')}
         onAdFailedToLoad={(error) => console.error('Search ad failed to load:', error)}
