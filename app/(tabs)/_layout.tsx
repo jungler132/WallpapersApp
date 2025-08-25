@@ -52,9 +52,9 @@ export default function TabLayout() {
         <Tabs.Screen
           name="anime"
           options={{
-            title: 'Anime',
+            title: 'Titles',
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="film-outline" size={size} color={color} />
+              <Ionicons name="library-outline" size={size} color={color} />
             ),
           }}
         />

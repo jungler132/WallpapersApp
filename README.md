@@ -1056,5 +1056,80 @@ try {
 - Error rates
 - Performance metrics
 
+## Manga Module (Kitsu)
+
+### Overview
+Manga integration is built on top of the Kitsu API. The app provides a manga list with search and filters, reusable cards, a detail screen with stats, categories, and a short chapters preview. UI/UX matches the existing app style.
+
+### API
+- Base: `https://kitsu.io/api/edge`
+- Headers: `Accept: application/vnd.api+json`, `Content-Type: application/vnd.api+json`
+- Service: `app/utils/kitsuApi.ts`
+  - `getMangaList({ limit, offset, search, category, status, sort })`
+    - Params mapping:
+      - `search` → `filter[text]`
+      - `category` → `filter[categories]`
+      - `status` → `filter[status]` (`current`, `finished`, `tba`, `unreleased`, `upcoming`)
+      - `sort` → `ratingRank` | `popularityRank`
+    - Pagination: `page[limit]`, `page[offset]`
+  - `getMangaDetail(id)` → `/manga/{id}`
+  - `getMangaCategories(id)` → `/manga/{id}/categories`
+  - `getMangaChapters(mangaId, limit)` → `/chapters?filter[mangaId]={id}`
+
+### Manga List
+- Location: `Titles` tab → toggle `Anime | Manga`
+- Screen: `app/(tabs)/anime.tsx` (when `contentType = 'manga'`)
+- Search: TextInput (`filter[text]`)
+- Quick filters (chips under the search bar):
+  - `Ongoing` → `status = current`
+  - `Finished` → `status = finished`
+  - `Top rated` → `sort = ratingRank`
+  - `Most popular` → `sort = popularityRank`
+- Categories: `Categories` dropdown below quick filters; selected category is highlighted
+- Pagination: `limit = 10`, `offset += 10`; items are de‑duplicated by `id`
+- Ads: same banner placement as other lists
+- Error handling: Toast (`type: 'error'`) + safe empty states
+
+### Manga Card
+- Component: `app/components/MangaCard.tsx`
+- Content:
+  - Poster (`posterImage.medium|small`)
+  - Title (priority: `en` → `en_jp` → `ja_jp`)
+  - Rating (★) from `averageRating / 10`
+  - Stats (if available): `chapterCount` (ch), `volumeCount` (vol)
+- Press: navigates to the manga detail screen
+
+### Manga Detail
+- Screen: `app/anime/manga/[id].tsx`
+- Header: poster (medium/large) with dark overlay
+- Ads: `FeedAdBanner` below the header
+- Sections:
+  - Stats: rating (★), `popularityRank`, `ratingRank`
+  - Publishing: `status`, `subtype/mangaType`, `ageRating (+guide)`, `startDate`, `endDate`, `chapterCount / volumeCount`, `serialization`
+  - Categories: chips from `/manga/{id}/categories`
+  - Chapters preview: up to 5 entries from `/chapters` (only entries with a meaningful title and/or publish date). Metadata line shows `Vol N · YYYY‑MM‑DD` only when a date is present
+  - Synopsis: `attributes.synopsis`
+- Loading/errors: activity indicators + Toast
+- Note: the “Adaptations” navigation from manga to anime is disabled by request
+
+### Anime/Manga Toggle
+- `Titles` tab has a top toggle `Anime | Manga`
+- Switching updates the data source, filters, and categories accordingly
+- Anime keeps its original filters and UI; Manga uses its own quick filters and the categories dropdown
+
+### Performance & Resilience
+- Respects global React Query policies
+- De‑duplication on pagination prevents duplicate keys warnings
+- Defensive checks: hides empty data (e.g., volumes without dates, chapters without meaningful data)
+
+### Integration Steps
+1. Added `kitsuApi.ts` with list/detail/categories/chapters helpers
+2. Updated `Titles` (`app/(tabs)/anime.tsx`):
+   - Content toggle
+   - Manga quick filters and categories dropdown
+   - Pagination, de‑duplication, Toast based error handling
+3. Added `MangaCard` component
+4. Implemented `app/anime/manga/[id].tsx` with ads, stats, categories, and chapters preview 
+
 
 
