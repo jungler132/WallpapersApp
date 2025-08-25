@@ -73,6 +73,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="image/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="anime/manga/[id]" options={{ headerShown: true }} />
         <Stack.Screen 
           name="privacy-policy" 
           options={{ 

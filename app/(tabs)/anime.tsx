@@ -7,6 +7,9 @@ import { Image as ExpoImage } from 'expo-image';
 import { Video } from 'expo-av';
 import * as WebBrowser from 'expo-web-browser';
 import { FeedAdBanner } from '../components/AdBanner';
+import { MangaCard } from '../components/MangaCard';
+import { getMangaList, MANGA_CATEGORIES, MangaData } from '../utils/kitsuApi';
+import Toast from 'react-native-toast-message';
 
 const COLORS = {
   primary: '#121212',
@@ -23,6 +26,7 @@ const COLORS = {
 const { width, height } = Dimensions.get('window');
 
 type FilterType = 'top' | 'seasonal' | 'ongoing' | 'finished' | 'upcoming';
+type ContentType = 'anime' | 'manga';
 const SEASONS: AnimeSeason[] = ['winter', 'spring', 'summer', 'fall'];
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -34,13 +38,25 @@ interface ApiResponse {
   };
 }
 
-export default function AnimeScreen() {
+export default function TitlesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('top');
   const [selectedSeason, setSelectedSeason] = useState<AnimeSeason>('winter');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showYearPicker, setShowYearPicker] = useState(false);
   const [showSeasonalMenu, setShowSeasonalMenu] = useState(false);
+  const [contentType, setContentType] = useState<ContentType>('anime');
+  
+  // Manga states
+  const [mangaList, setMangaList] = useState<MangaData[]>([]);
+  const [mangaLoading, setMangaLoading] = useState(false);
+  const [mangaOffset, setMangaOffset] = useState(0);
+  const [mangaHasMore, setMangaHasMore] = useState(true);
+  const [selectedMangaCategory, setSelectedMangaCategory] = useState('');
+  const [mangaStatus, setMangaStatus] = useState<'current' | 'finished' | 'tba' | 'unreleased' | 'upcoming' | ''>('');
+  const [mangaSort, setMangaSort] = useState<string>('');
+  const [showCategoriesPicker, setShowCategoriesPicker] = useState(false);
+  // категории показываем вторым рядом чипов под быстрыми фильтрами
 
   const {
     data: topAnimeData,
@@ -91,6 +107,65 @@ export default function AnimeScreen() {
     isFetchingNextPage: isFetchingNextSearchPage
   } = useAnimeSearch(searchQuery);
 
+  // Manga loading functions
+  const loadMangaList = useCallback(async (isInitial = true) => {
+    if (mangaLoading) return;
+    
+    try {
+      setMangaLoading(true);
+      
+      const offset = isInitial ? 0 : mangaOffset;
+      const response = await getMangaList({
+        limit: 10,
+        offset,
+        search: searchQuery,
+        category: selectedMangaCategory,
+        status: mangaStatus,
+        sort: mangaSort,
+      });
+      
+      if (isInitial) {
+        setMangaList(response.data);
+      } else {
+        setMangaList(prev => {
+          const existingIds = new Set(prev.map(it => it.id));
+          const unique = response.data.filter(it => !existingIds.has(it.id));
+          return [...prev, ...unique];
+        });
+      }
+      
+      setMangaOffset(offset + 10);
+      setMangaHasMore(response.data.length === 10);
+    } catch (error) {
+      console.error('[Manga] Error loading manga:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load manga. Please try again.',
+      });
+    } finally {
+      setMangaLoading(false);
+    }
+  }, [mangaLoading, mangaOffset, searchQuery, selectedMangaCategory, mangaStatus, mangaSort]);
+
+  // Load manga on mount and when filters change
+  React.useEffect(() => {
+    if (contentType === 'manga') {
+      loadMangaList(true);
+    }
+  }, [contentType, searchQuery, selectedMangaCategory, mangaStatus, mangaSort]);
+
+  // Автопоиск и автопереключение вкладки по параметрам (для Adaptations)
+  const params = useLocalSearchParams() as { q?: string; tab?: string };
+  React.useEffect(() => {
+    if (params?.q) {
+      setSearchQuery(String(params.q));
+    }
+    if (params?.tab === 'anime') {
+      setContentType('anime');
+    }
+  }, [params?.q, params?.tab]);
+
   const removeDuplicates = (animeList: Anime[]) => {
     const seen = new Set();
     return animeList.filter(anime => {
@@ -131,43 +206,54 @@ export default function AnimeScreen() {
   };
 
   const loadMore = () => {
-    if (searchQuery) {
-      if (hasNextSearchPage && !isFetchingNextSearchPage) {
-        fetchNextSearch();
+    if (contentType === 'anime') {
+      if (searchQuery) {
+        if (hasNextSearchPage && !isFetchingNextSearchPage) {
+          fetchNextSearch();
+        }
+        return;
       }
-      return;
-    }
 
-    switch (selectedFilter) {
-      case 'top':
-        if (hasNextTopAnimePage && !isFetchingNextTopAnimePage) {
-          fetchNextTopAnime();
-        }
-        break;
-      case 'seasonal':
-        if (hasNextSeasonalPage && !isFetchingNextSeasonalPage) {
-          fetchNextSeasonalAnime();
-        }
-        break;
-      case 'ongoing':
-        if (hasNextOngoingPage && !isFetchingNextOngoingPage) {
-          fetchNextOngoingAnime();
-        }
-        break;
-      case 'finished':
-        if (hasNextCompletedPage && !isFetchingNextCompletedPage) {
-          fetchNextCompletedAnime();
-        }
-        break;
-      case 'upcoming':
-        if (hasNextUpcomingPage && !isFetchingNextUpcomingPage) {
-          fetchNextUpcomingAnime();
-        }
-        break;
+      switch (selectedFilter) {
+        case 'top':
+          if (hasNextTopAnimePage && !isFetchingNextTopAnimePage) {
+            fetchNextTopAnime();
+          }
+          break;
+        case 'seasonal':
+          if (hasNextSeasonalPage && !isFetchingNextSeasonalPage) {
+            fetchNextSeasonalAnime();
+          }
+          break;
+        case 'ongoing':
+          if (hasNextOngoingPage && !isFetchingNextOngoingPage) {
+            fetchNextOngoingAnime();
+          }
+          break;
+        case 'finished':
+          if (hasNextCompletedPage && !isFetchingNextCompletedPage) {
+            fetchNextCompletedAnime();
+          }
+          break;
+        case 'upcoming':
+          if (hasNextUpcomingPage && !isFetchingNextUpcomingPage) {
+            fetchNextUpcomingAnime();
+          }
+          break;
+      }
+    } else {
+      // Manga load more
+      if (mangaHasMore && !mangaLoading) {
+        loadMangaList(false);
+      }
     }
   };
 
   const isLoading = () => {
+    if (contentType === 'manga') {
+      return mangaLoading;
+    }
+    
     if (searchQuery) {
       return isFetchingNextSearchPage;
     }
@@ -277,7 +363,17 @@ export default function AnimeScreen() {
     </TouchableOpacity>
   ), []);
 
-  const animeData = getAnimeData();
+  const handleMangaPress = useCallback((manga: MangaData) => {
+    router.push({
+      pathname: '/anime/manga/[id]',
+      params: { id: manga.id }
+    });
+  }, []);
+
+  const renderMangaItem = useCallback(({ item }: { item: MangaData }) => (
+    <MangaCard manga={item} onPress={handleMangaPress} />
+  ), [handleMangaPress]);
+
   // Группируем аниме по 2 и вставляем баннеры как отдельные строки
   const AD_FREQUENCY = 6;
   type AnimeRowOrAd = { type: 'ad'; key: string } | { type: 'row'; items: Anime[]; key: string };
@@ -288,23 +384,27 @@ export default function AnimeScreen() {
     animeList.forEach((item, idx) => {
       if (animeCount > 0 && animeCount % AD_FREQUENCY === 0) {
         if (row.length > 0) {
-          result.push({ type: 'row', items: row, key: `row-${idx}` });
+          const rowKeyIds = row.map(r => r.mal_id).join('-');
+          result.push({ type: 'row', items: row, key: `row-${rowKeyIds}` });
           row = [];
         }
-        result.push({ type: 'ad', key: `ad-${idx}` });
+        result.push({ type: 'ad', key: `ad-${animeCount}-${idx}-${result.length}` });
       }
       row.push(item);
       animeCount++;
       if (row.length === 2) {
-        result.push({ type: 'row', items: row, key: `row-${idx}` });
+        const rowKeyIds = row.map(r => r.mal_id).join('-');
+        result.push({ type: 'row', items: row, key: `row-${rowKeyIds}` });
         row = [];
       }
     });
     if (row.length > 0) {
-      result.push({ type: 'row', items: row, key: `row-last` });
+      const rowKeyIds = row.map(r => r.mal_id).join('-');
+      result.push({ type: 'row', items: row, key: `row-${rowKeyIds}-last` });
     }
     return result;
   };
+  const animeData = getAnimeData();
   const animeRowsWithAds = buildAnimeRowsWithAds(animeData);
 
   const renderAnimeRowOrAd = useCallback(({ item }: { item: AnimeRowOrAd }) => {
@@ -349,7 +449,7 @@ export default function AnimeScreen() {
   };
 
   const loading = isLoading();
-  const isEmpty = animeData.length === 0;
+  const isEmpty = contentType === 'anime' ? animeData.length === 0 : mangaList.length === 0;
 
   const renderEmptyState = () => (
     <View style={styles.emptyStateContainer}>
@@ -364,7 +464,7 @@ export default function AnimeScreen() {
   return (
     <>
       <Stack.Screen options={{ 
-        title: 'Anime',
+        title: 'Titles',
         headerStyle: {
           backgroundColor: COLORS.primary,
         },
@@ -372,76 +472,200 @@ export default function AnimeScreen() {
         headerShadowVisible: false,
       }} />
       <View style={styles.container}>
+        {/* Content Type Toggle */}
+        <View style={styles.contentTypeToggle}>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              contentType === 'anime' && styles.toggleButtonActive
+            ]}
+            onPress={() => setContentType('anime')}
+          >
+            <Text style={[
+              styles.toggleText,
+              contentType === 'anime' && styles.toggleTextActive
+            ]}>
+              Anime
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              contentType === 'manga' && styles.toggleButtonActive
+            ]}
+            onPress={() => setContentType('manga')}
+          >
+            <Text style={[
+              styles.toggleText,
+              contentType === 'manga' && styles.toggleTextActive
+            ]}>
+              Manga
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search anime..."
+            placeholder={`Search ${contentType}...`}
             placeholderTextColor={COLORS.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
 
-        <View style={styles.filterSection}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
-            <TouchableOpacity
-              style={[styles.filterButton, selectedFilter === 'top' && styles.filterButtonActive]}
-              onPress={() => {
-                setSelectedFilter('top');
-                setShowSeasonalMenu(false);
-              }}
-            >
-              <Text style={[styles.filterText, selectedFilter === 'top' && styles.filterTextActive]}>Top Anime</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterButton, selectedFilter === 'ongoing' && styles.filterButtonActive]}
-              onPress={() => {
-                setSelectedFilter('ongoing');
-                setShowSeasonalMenu(false);
-              }}
-            >
-              <Text style={[styles.filterText, selectedFilter === 'ongoing' && styles.filterTextActive]}>Ongoing</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterButton, selectedFilter === 'upcoming' && styles.filterButtonActive]}
-              onPress={() => {
-                setSelectedFilter('upcoming');
-                setShowSeasonalMenu(false);
-              }}
-            >
-              <Text style={[styles.filterText, selectedFilter === 'upcoming' && styles.filterTextActive]}>Upcoming</Text>
-            </TouchableOpacity>
-          </ScrollView>
+        {contentType === 'anime' ? (
+          // Anime filters
+          <View style={styles.filterSection}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
+              <TouchableOpacity
+                style={[styles.filterButton, selectedFilter === 'top' && styles.filterButtonActive]}
+                onPress={() => {
+                  setSelectedFilter('top');
+                  setShowSeasonalMenu(false);
+                }}
+              >
+                <Text style={[styles.filterText, selectedFilter === 'top' && styles.filterTextActive]}>Top Anime</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterButton, selectedFilter === 'ongoing' && styles.filterButtonActive]}
+                onPress={() => {
+                  setSelectedFilter('ongoing');
+                  setShowSeasonalMenu(false);
+                }}
+              >
+                <Text style={[styles.filterText, selectedFilter === 'ongoing' && styles.filterTextActive]}>Ongoing</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterButton, selectedFilter === 'upcoming' && styles.filterButtonActive]}
+                onPress={() => {
+                  setSelectedFilter('upcoming');
+                  setShowSeasonalMenu(false);
+                }}
+              >
+                <Text style={[styles.filterText, selectedFilter === 'upcoming' && styles.filterTextActive]}>Upcoming</Text>
+              </TouchableOpacity>
+            </ScrollView>
 
-          <TouchableOpacity
-            onPress={toggleSeasonalMenu}
-            style={[
-              styles.seasonalMainButton,
-              showSeasonalMenu && styles.seasonalMainButtonActive
-            ]}
-          >
-            <View style={styles.seasonalButtonContent}>
-              <Ionicons 
-                name={selectedFilter === 'seasonal' ? 'calendar' : 'calendar-outline'} 
-                size={24} 
-                color={selectedFilter === 'seasonal' ? COLORS.text : COLORS.textSecondary} 
-              />
-              <Text style={[
-                styles.seasonalMainText, 
-                selectedFilter === 'seasonal' && styles.seasonalMainTextActive
-              ]}>
-                {selectedSeason.charAt(0).toUpperCase() + selectedSeason.slice(1)} {selectedYear}
-              </Text>
-              <Ionicons
-                name={showSeasonalMenu ? "chevron-up" : "chevron-down"}
-                size={24}
-                color={selectedFilter === 'seasonal' ? COLORS.text : COLORS.textSecondary}
-                style={styles.seasonalIcon}
-              />
+            <TouchableOpacity
+              onPress={toggleSeasonalMenu}
+              style={[
+                styles.seasonalMainButton,
+                showSeasonalMenu && styles.seasonalMainButtonActive
+              ]}
+            >
+              <View style={styles.seasonalButtonContent}>
+                <Ionicons 
+                  name={selectedFilter === 'seasonal' ? 'calendar' : 'calendar-outline'} 
+                  size={24} 
+                  color={selectedFilter === 'seasonal' ? COLORS.text : COLORS.textSecondary} 
+                />
+                <Text style={[
+                  styles.seasonalMainText, 
+                  selectedFilter === 'seasonal' && styles.seasonalMainTextActive
+                ]}>
+                  {selectedSeason.charAt(0).toUpperCase() + selectedSeason.slice(1)} {selectedYear}
+                </Text>
+                <Ionicons
+                  name={showSeasonalMenu ? "chevron-up" : "chevron-down"}
+                  size={24}
+                  color={selectedFilter === 'seasonal' ? COLORS.text : COLORS.textSecondary}
+                  style={styles.seasonalIcon}
+                />
+              </View>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {/* Панель быстрых фильтров для манги */}
+            <View style={styles.filterSection}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
+                <TouchableOpacity
+                  style={[styles.filterButton, mangaStatus === 'current' && styles.filterButtonActive]}
+                  onPress={() => setMangaStatus(prev => prev === 'current' ? '' : 'current')}
+                >
+                  <Text style={[styles.filterText, mangaStatus === 'current' && styles.filterTextActive]}>Ongoing</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterButton, mangaStatus === 'finished' && styles.filterButtonActive]}
+                  onPress={() => setMangaStatus(prev => prev === 'finished' ? '' : 'finished')}
+                >
+                  <Text style={[styles.filterText, mangaStatus === 'finished' && styles.filterTextActive]}>Finished</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterButton, mangaSort === 'ratingRank' && styles.filterButtonActive]}
+                  onPress={() => setMangaSort(prev => prev === 'ratingRank' ? '' : 'ratingRank')}
+                >
+                  <Text style={[styles.filterText, mangaSort === 'ratingRank' && styles.filterTextActive]}>Top rated</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterButton, mangaSort === 'popularityRank' && styles.filterButtonActive]}
+                  onPress={() => setMangaSort(prev => prev === 'popularityRank' ? '' : 'popularityRank')}
+                >
+                  <Text style={[styles.filterText, mangaSort === 'popularityRank' && styles.filterTextActive]}>Most popular</Text>
+                </TouchableOpacity>
+              </ScrollView>
             </View>
-          </TouchableOpacity>
-        </View>
+
+            {/* Кнопка дропдауна категорий под быстрыми фильтрами */}
+            <View style={[styles.filterSection, { marginTop: -4 }] }>
+              <TouchableOpacity
+                style={[styles.seasonalMainButton]}
+                onPress={() => setShowCategoriesPicker(true)}
+              >
+                <View style={styles.seasonalButtonContent}>
+                  <Ionicons name="pricetags-outline" size={20} color={COLORS.textSecondary} />
+                  <Text style={styles.seasonalMainText}>
+                    {selectedMangaCategory ? `Category: ${MANGA_CATEGORIES.find(c=>c.value===selectedMangaCategory)?.label}` : 'Categories'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={20} color={COLORS.textSecondary} style={styles.seasonalIcon} />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Модалка выбора категории */}
+            <Modal
+              visible={showCategoriesPicker}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowCategoriesPicker(false)}
+            >
+              <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setShowCategoriesPicker(false)}
+              >
+                <View style={styles.categoryPickerContainer}>
+                  <ScrollView>
+                    {MANGA_CATEGORIES.map((cat) => (
+                      <TouchableOpacity
+                        key={cat.value}
+                        style={[styles.categoryOption, selectedMangaCategory === cat.value && styles.categoryOptionActive]}
+                        onPress={() => {
+                          setSelectedMangaCategory(cat.value);
+                          setShowCategoriesPicker(false);
+                        }}
+                      >
+                        <Text style={[styles.categoryOptionText, selectedMangaCategory === cat.value && styles.categoryOptionTextActive]}>
+                          {cat.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                    {selectedMangaCategory !== '' && (
+                      <TouchableOpacity
+                        style={styles.categoryClear}
+                        onPress={() => { setSelectedMangaCategory(''); setShowCategoriesPicker(false); }}
+                      >
+                        <Text style={styles.categoryClearText}>Clear</Text>
+                      </TouchableOpacity>
+                    )}
+                  </ScrollView>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          </>
+        )}
 
         {showSeasonalMenu && (
           <View style={styles.seasonalFilters}>
@@ -499,12 +723,13 @@ export default function AnimeScreen() {
           </View>
         )}
 
-        {selectedFilter === 'seasonal' && renderSeasonalHeader()}
+        {selectedFilter === 'seasonal' && contentType === 'anime' && renderSeasonalHeader()}
 
         {isEmpty ? (
           renderEmptyState()
-        ) : (
+        ) : contentType === 'anime' ? (
           <FlatList
+            key="anime-list"
             data={animeRowsWithAds}
             renderItem={renderAnimeRowOrAd}
             keyExtractor={(item: AnimeRowOrAd) => item.key}
@@ -522,8 +747,29 @@ export default function AnimeScreen() {
               ) : null
             }
           />
+        ) : (
+          <FlatList
+            key={`manga-${mangaStatus}-${mangaSort}-${selectedMangaCategory}`}
+            data={mangaList}
+            renderItem={renderMangaItem}
+            keyExtractor={(item: MangaData) => item.id}
+            numColumns={2}
+            contentContainerStyle={styles.listContainer}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={() =>
+              loading ? (
+                <ActivityIndicator
+                  size="large"
+                  color={COLORS.accent}
+                  style={styles.loader}
+                />
+              ) : null
+            }
+          />
         )}
       </View>
+      <Toast />
     </>
   );
 }
@@ -533,9 +779,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.primary,
   },
-  loadingContainer: {
-    padding: 20,
+  contentTypeToggle: {
+    flexDirection: 'row',
+    margin: 16,
+    backgroundColor: COLORS.secondary,
+    borderRadius: 12,
+    padding: 4,
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     alignItems: 'center',
+  },
+  toggleButtonActive: {
+    backgroundColor: COLORS.accent,
+  },
+  toggleText: {
+    color: COLORS.textSecondary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  toggleTextActive: {
+    color: COLORS.text,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -796,12 +1063,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  statItemLast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginRight: 8,
-  },
   statText: {
     fontSize: 12,
     color: COLORS.textSecondary,
@@ -812,48 +1073,65 @@ const styles = StyleSheet.create({
   sourceText: {
     fontSize: 12,
     color: COLORS.textSecondary,
-    fontStyle: 'italic',
-  },
-  trailerButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 8,
-    padding: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   genresContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 4,
-    marginTop: 'auto',
   },
   genreTag: {
     backgroundColor: COLORS.secondary,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   genreText: {
     fontSize: 10,
-    color: COLORS.text,
+    color: COLORS.textSecondary,
   },
   emptyStateContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    padding: 20,
   },
   emptyStateImage: {
-    width: width * 0.7,
-    height: width * 0.7,
-    marginBottom: 24,
-  },
-  emptyStateText: {
-    color: COLORS.textSecondary,
-    fontSize: 16,
-    textAlign: 'center',
+    width: 200,
+    height: 200,
+    opacity: 0.5,
   },
   loader: {
-    padding: 20,
+    marginVertical: 20,
+  },
+  categoryPickerContainer: {
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 12,
+    width: '80%',
+    maxHeight: '60%',
+    padding: 16,
+  },
+  categoryOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  categoryOptionActive: {
+    backgroundColor: COLORS.accent,
+  },
+  categoryOptionText: {
+    color: COLORS.text,
+    fontSize: 16,
+  },
+  categoryOptionTextActive: {
+    fontWeight: '600',
+  },
+  categoryClear: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  categoryClearText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
   },
 }); 
